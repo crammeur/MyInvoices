@@ -1,0 +1,63 @@
+{
+  "project_info": {
+    "project_number": "512722055028",
+    "firebase_url": "https://myinvoices-1d20a.firebaseio.com",
+    "project_id": "myinvoices-1d20a",
+    "storage_bucket": "myinvoices-1d20a.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:512722055028:android:7e2af826713bd1e7",
+        "android_client_info": {
+          "package_name": "ca.qc.bergeron.marcantoine.crammeur.myinvoices"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "512722055028-tpr28uju51m9jug1dqtld32gmgaa162e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ca.qc.bergeron.marcantoine.crammeur.myinvoices",
+            "certificate_hash": "52e6de70cb2972ac3b29ed43d7ee25aa7d0a5f73"
+          }
+        },
+        {
+          "client_id": "512722055028-6r1k2psfl1l6qqnvar0pnrnqalp491j3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ca.qc.bergeron.marcantoine.crammeur.myinvoices",
+            "certificate_hash": "2938ede3a3c102f21d2d0158d1bc2dc8691601f8"
+          }
+        },
+        {
+          "client_id": "512722055028-h4dg2eiiebl0iv0006rlimt8k89090oc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDypO7PUvt1JyACTUwPomJFoaonjZNEPOE"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "512722055028-h4dg2eiiebl0iv0006rlimt8k89090oc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

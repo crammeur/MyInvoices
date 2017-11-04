@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tvILCClientName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Client Name"
+        android:textSize="18sp" />
+
+    <TextView
+        android:id="@+id/tvILCDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Description" />
+
+    <TextView
+        android:id="@+id/tvILCID"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Id" />
+
+    <TextView
+        android:id="@+id/tvILCDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Date"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/tvILCCompanyName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Company Name"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/tvILCTotal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Total" />
+
+</LinearLayout>

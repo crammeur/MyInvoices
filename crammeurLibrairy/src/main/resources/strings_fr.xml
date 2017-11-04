@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+    <entry key="address">Adresse</entry>
+    <entry key="all">Tous</entry>
+    <entry key="buyer">Acheteur</entry>
+    <entry key="cancelled">Annulé</entry>
+    <entry key="client">Client</entry>
+    <entry key="company">Compagnie</entry>
+    <entry key="delete">Supprimer</entry>
+    <entry key="description">Description</entry>
+    <entry key="detail">Détail</entry>
+    <entry key="dollar_1">$</entry>
+    <entry key="edit">Modifier</entry>
+    <entry key="email">E-Mail</entry>
+    <entry key="gst">TVG</entry>
+    <entry key="hst">TVH</entry>
+    <entry key="invoice">Facture</entry>
+    <entry key="loading">Chargement</entry>
+    <entry key="name">Nom</entry>
+    <entry key="no">Non</entry>
+    <entry key="phone">Téléphone</entry>
+    <entry key="price">Prix</entry>
+    <entry key="product">Produit</entry>
+    <entry key="pst">TVP</entry>
+    <entry key="qty">Qté</entry>
+    <entry key="quantity">Quantité</entry>
+    <entry key="sale">Vente</entry>
+    <entry key="save">Sauvegarder</entry>
+    <entry key="saving">Enregistrement</entry>
+    <entry key="seller">Vendeur</entry>
+    <entry key="setting">Paramètre</entry>
+    <entry key="subtotal">Sous-total</entry>
+    <entry key="summary">Sommaire</entry>
+    <entry key="total">Total</entry>
+    <entry key="unit">Unité</entry>
+    <entry key="yes">Oui</entry>
+</properties>

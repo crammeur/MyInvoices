@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <EditText
+                android:id="@+id/etProductName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/sAProducCompany"
+                android:clickable="false"
+                android:ems="10"
+                android:hint="@string/name"
+                android:inputType="textPersonName" />
+
+            <EditText
+                android:id="@+id/etProductDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/etProductName"
+                android:clickable="false"
+                android:ems="10"
+                android:hint="@string/description"
+                android:inputType="textPersonName"
+                android:lines="8"
+                android:maxLines="10"
+                android:minLines="6" />
+
+            <EditText
+                android:id="@+id/etProductPrice"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/etProductDescription"
+                android:layout_toEndOf="@+id/tvAProductName"
+                android:layout_toRightOf="@+id/tvAProductName"
+                android:ems="10"
+                android:hint="@string/price"
+                android:inputType="numberSigned|numberDecimal" />
+
+            <!--<EditText
+                android:id="@+id/etProductUnit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/etProductPrice"
+                android:ems="10"
+                android:hint="@string/unit"
+                android:inputType="number|numberDecimal" />-->
+
+            <EditText
+                android:id="@+id/etProductQuantity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/etProductUnit"
+                android:ems="10"
+                android:hint="@string/quantity"
+                android:inputType="number|numberDecimal" />
+
+            <EditText
+                android:id="@+id/etProductSubtotal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:hint="@string/subtotal"
+                android:inputType="number|numberSigned|numberDecimal" />
+
+            <EditText
+                android:id="@+id/etProductTVA"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/etProductTVQ"
+                android:ems="10"
+                android:inputType="number|numberDecimal" />
+
+            <EditText
+                android:id="@+id/etProductTPS"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentRight="true"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/etProductQuantity"
+                android:ems="10"
+                android:inputType="number|numberDecimal" />
+
+            <EditText
+                android:id="@+id/etProductTVQ"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentRight="true"
+                android:layout_alignParentStart="true"
+                android:layout_below="@+id/etProductTPS"
+                android:ems="10"
+                android:inputType="number|numberDecimal" />
+
+            <EditText
+                android:id="@+id/etProductTotal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:hint="@string/total"
+                android:inputType="number|numberSigned|numberDecimal" />
+
+            <Button
+                android:id="@+id/btnProductSave"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentRight="true"
+                android:onClick="saveProduct"
+                android:text="@string/save" />
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
