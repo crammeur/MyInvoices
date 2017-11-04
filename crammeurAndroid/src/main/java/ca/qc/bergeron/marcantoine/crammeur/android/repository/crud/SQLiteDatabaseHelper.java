@@ -47,6 +47,7 @@ public final class SQLiteDatabaseHelper extends SQLiteOpenHelper implements SQLi
         if (!db.isReadOnly()) {
             // Enable foreign key constraints
             db.execSQL("PRAGMA foreign_keys=ON;");
+            // Enable auto vaccum (truncate) when delete data
             db.execSQL("PRAGMA auto_vacuum=FULL");
         }
     }

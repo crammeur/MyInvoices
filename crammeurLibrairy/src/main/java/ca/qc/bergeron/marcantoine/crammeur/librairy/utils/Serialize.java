@@ -18,10 +18,10 @@ import java.io.Serializable;
 
 public final class Serialize {
 
-    private static class Buffer {
+    public static class Buffer {
         public static final byte[] RAM = new byte[8192];
-        public static byte[] DISK = new byte[4096];
-    }
+        public static final byte[] DISK = new byte[4096];
+     }
 
     public static byte[] fileToBytes(@NotNull File pFile) {
         byte[] buffer = Buffer.DISK;

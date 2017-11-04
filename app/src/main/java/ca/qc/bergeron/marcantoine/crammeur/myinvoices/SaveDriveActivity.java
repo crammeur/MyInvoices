@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import ca.qc.bergeron.marcantoine.crammeur.android.repository.crud.SQLiteDatabaseHelper;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.Serialize;
 
 /**
  * An activity that pins a file to the device. Pinning allows
@@ -34,7 +35,7 @@ public class SaveDriveActivity extends BaseDriveActivity {
     private static final String TAG = "PinFileActivity";
 
     private byte[] file2Bytes(@NonNull File pFile) {
-        byte[] buffer = new byte[4096];
+        byte[] buffer = Serialize.Buffer.DISK;
         int len;
         try {
             BufferedInputStream buf = new BufferedInputStream(new FileInputStream(pFile));
