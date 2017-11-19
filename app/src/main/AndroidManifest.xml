@@ -26,21 +26,21 @@
             android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="ca.qc.bergeron.marcantoine.crammeur.myinvoices.MainActivity" />
+                android:value="ca.qc.bergeron.marcantoine.crammeur.myinvoices.SettingsActivity" />
         </activity>
         <activity android:name=".CSVDriveActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="ca.qc.bergeron.marcantoine.crammeur.myinvoices.MainActivity" />
+                android:value="ca.qc.bergeron.marcantoine.crammeur.myinvoices.SettingsActivity" />
         </activity>
         <activity android:name=".LoadDriveActivity"
             android:configChanges="orientation"
             android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="ca.qc.bergeron.marcantoine.crammeur.myinvoices.MainActivity" />
+                android:value="ca.qc.bergeron.marcantoine.crammeur.myinvoices.SettingsActivity" />
         </activity>
         <activity android:name=".SettingsActivity"
             android:label="@string/settings"

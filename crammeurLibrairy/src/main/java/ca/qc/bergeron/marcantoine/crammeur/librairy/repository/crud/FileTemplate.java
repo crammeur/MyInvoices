@@ -45,7 +45,6 @@ public class FileTemplate<T extends Data<Integer>> extends CRUD<T, Integer> {
     protected final File mFile;
     protected final File mSettingsFile;
     protected final File mGlobalIndexFile;
-    protected final TreeMap<Integer, T> mKeyData = (TreeMap<Integer, T>) mTableKeyData.get(mTableName);
     protected final boolean onDeleteCascade;
     protected final boolean onUpdateCascade;
     protected final boolean foreignKey;
@@ -510,7 +509,7 @@ public class FileTemplate<T extends Data<Integer>> extends CRUD<T, Integer> {
         if (!this.contains(pKey)) throw new KeyException("Key is not in database");
         mTableKeyData.get(mTableName).remove(pKey);
         updateFile();
-        if (mGlobalIndex.get(mClazz).containsKey(pKey)) {
+        if (mGlobalIndex.containsKey(mClazz) && mGlobalIndex.get(mClazz).containsKey(pKey)) {
             for (Class table : mGlobalIndex.get(mClazz).get(pKey).keySet()) {
                 for (Integer key : mGlobalIndex.get(mClazz).get(pKey).get(table)) {
                     if (mGlobalIndex.get(mClazz).get(pKey).get(table).onDeleteCascade.get(key)) {

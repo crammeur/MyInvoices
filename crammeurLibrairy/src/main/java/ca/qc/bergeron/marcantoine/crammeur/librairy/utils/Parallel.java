@@ -55,14 +55,14 @@ public final class Parallel {
                         } else {
                             synchronized (callable) {
                                 r = callable.call();
-                                if (operation.result()) {
-                                    synchronized (result) {
-                                        result.add(r);
-                                    }
+                            }
+                            if (operation.result()) {
+                                synchronized (result) {
+                                    result.add(r);
                                 }
-                                if (!operation.follow()) {
-                                    break;
-                                }
+                            }
+                            if (!operation.follow()) {
+                                break;
                             }
                         }
                     } catch (NoSuchElementException e) {
@@ -89,7 +89,7 @@ public final class Parallel {
         return result;
     }
 
-    @NotNull
+    /*@NotNull
     public static <T,R> Iterable<R> For(final Iterable<T> elements, final Operation<T,R> operation) {
         ExecutorService executor = Executors.newFixedThreadPool(MAX_THREAD);
         final List<R> result = new LinkedList<>();
@@ -123,14 +123,14 @@ public final class Parallel {
                         } else {
                             synchronized (callable) {
                                 r = callable.call();
-                                if (operation.result()) {
-                                    synchronized (result) {
-                                        result.add(r);
-                                    }
+                            }
+                            if (operation.result()) {
+                                synchronized (result) {
+                                    result.add(r);
                                 }
-                                if (!operation.follow()) {
-                                    break;
-                                }
+                            }
+                            if (!operation.follow()) {
+                                break;
                             }
                         }
                     } catch (NoSuchElementException e) {
@@ -157,7 +157,7 @@ public final class Parallel {
         }
         return result;
     }
-
+*/
     @NotNull
     public static <T,R> Collection<Callable<R>> createCallables(final Collection<T> elements, final Operation<T,R> operation) {
         ExecutorService executor = Executors.newFixedThreadPool(MAX_THREAD);
@@ -222,26 +222,18 @@ public final class Parallel {
                         final T element;
                         if (operation.async()) {
                             element = iterator.next();
-                            synchronized (result) {
-                                result.add(new Callable<R>() {
-                                    @Override
-                                    public R call() throws Exception {
-                                        return operation.perform(element);
-                                    }
-                                });
-                            }
                         } else {
                             synchronized (iterator) {
                                 element = iterator.next();
-                                synchronized (result) {
-                                    result.add(new Callable<R>() {
-                                        @Override
-                                        public R call() throws Exception {
-                                            return operation.perform(element);
-                                        }
-                                    });
-                                }
                             }
+                        }
+                        synchronized (result) {
+                            result.add(new Callable<R>() {
+                                @Override
+                                public R call() throws Exception {
+                                    return operation.perform(element);
+                                }
+                            });
                         }
                     } catch (NoSuchElementException e) {
                         break;

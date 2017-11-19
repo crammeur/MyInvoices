@@ -1,7 +1,6 @@
 package ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.List;
@@ -23,14 +22,11 @@ public interface DataListIterator<T extends Data<K>, K extends Serializable> ext
 
     void add(@NotNull K pIndex, @NotNull T pData);
 
-    @Nullable
-    T remove(@NotNull K pIndex);
+    @NotNull
+    K indexOf(@NotNull T pData);
 
     @NotNull
-    K listIndexOf(@NotNull T pData);
-
-    @NotNull
-    K lastListIndexOf(@NotNull T pData);
+    K lastIndexOf(@NotNull T pData);
 
     @NotNull
     @Override
@@ -41,13 +37,10 @@ public interface DataListIterator<T extends Data<K>, K extends Serializable> ext
     List<T> collectionOf(@NotNull K pIndex);
 
     @NotNull
-    List<T> lastListOf(@NotNull K pIndex);
+    ListIterator<T> listIterator();
 
     @NotNull
-    ListIterator<T> dataListIteratorIterator();
-
-    @NotNull
-    ListIterator<T> dataListIteratorIterator(@NotNull K pIndex);
+    ListIterator<T> listIterator(@NotNull K pIndex);
 
     @NotNull
     DataListIterator<T, K> subDataListIterator(@NotNull K pIndex1, @NotNull K pIndex2);

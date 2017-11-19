@@ -68,6 +68,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 AlertDialog.Builder builder = new AlertDialog.Builder(SettingsActivity.this);
+                builder.setCancelable(false);
                 builder.setMessage(SettingsActivity.this.getResources().getString(R.string.delete_message));
                 builder.setPositiveButton(SettingsActivity.this.getResources().getString(R.string.yes), new Dialog.OnClickListener() {
                     @Override

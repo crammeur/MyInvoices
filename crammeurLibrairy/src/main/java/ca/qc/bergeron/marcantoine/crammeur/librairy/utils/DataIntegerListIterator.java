@@ -1,3 +1,4 @@
+/*
 package ca.qc.bergeron.marcantoine.crammeur.librairy.utils;
 
 import org.jetbrains.annotations.NotNull;
@@ -13,9 +14,10 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataCollectionIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator;
 
-/**
+*
  * Created by Marc-Antoine on 2017-09-18.
- */
+
+
 
 public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.qc.bergeron.marcantoine.crammeur.librairy.utils.DataListIterator<T, Integer> {
 
@@ -140,7 +142,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
 
     @NotNull
     @Override
-    public final Integer indexOf(@Nullable final Integer pKey) {
+    public final Integer indexOfKey(@Nullable final Integer pKey) {
         int result = NULL_INDEX;
         boolean gc = false;
         for (Collection<T> collecttion : this.allCollections()) {
@@ -230,8 +232,8 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     @Override
-    public boolean remove(@NotNull T o) {
-        return values.remove(o);
+    public void remove(@NotNull T o) {
+        values.remove(o);
     }
 
     @Override
@@ -246,32 +248,44 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     @Override
-    public boolean retainAll(@NotNull Iterable<? extends T> pIterable) {
+    public <E extends T> void retainAll(@NotNull DataListIterator<E, Integer> pDataListIterator) {
         final DataCollectionIterator<T, Integer> c = new DataIntegerListIterator<T>();
-        for (final T data : pIterable) {
+        for (final T data : pDataListIterator) {
             c.add(data);
         }
         boolean result = true;
         for (final T data : this) {
-            if (!c.contains(data) && !this.remove(data)) result = false;
+            if (!c.contains(data)) result = false;
             if (!result) break;
         }
-        if (Runtime.getRuntime().maxMemory() / 2 < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-            System.gc();
-        return result;
     }
 
     @Override
-    public final boolean addAll(@NotNull Integer pIndex, @NotNull Iterable<? extends T> pIterable) {
-        boolean result = true;
-        for (T data : pIterable) {
-            this.add(data);
-            if (!this.contains(data)) result = false;
-            if (!result) break;
-        }
-        if (Runtime.getRuntime().maxMemory() / 2 < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-            System.gc();
-        return result;
+    public final <E extends T> void addAll(@NotNull Integer pIndex, @NotNull Iterable<E> pIterable) {
+        Parallel.For(pIterable, new Parallel.Operation<E, Void>() {
+            @Override
+            public Void perform(E pParameter) {
+                synchronized (DataIntegerListIterator.this) {
+                    DataIntegerListIterator.this.add(pParameter);
+                }
+                return null;
+            }
+
+            @Override
+            public boolean follow() {
+                return true;
+            }
+
+            @Override
+            public boolean result() {
+                return false;
+            }
+
+            @Override
+            public boolean async() {
+                return false;
+            }
+        });
     }
 
     @Override
@@ -332,32 +346,27 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
         return values.remove((int) pIndex);
     }
 
-    @Override
-    @NotNull
-    public LinkedList<T> lastListOf(@NotNull Integer pData) {
-        return new LinkedList<>(values);
-    }
 
     @Override
-    public Integer listIndexOf(@NotNull T pData) {
+    public Integer indexOf(@NotNull T pData) {
         return values.indexOf(pData);
     }
 
     @Override
-    public Integer lastListIndexOf(@NotNull T pData) {
+    public Integer lastIndexOf(@NotNull T pData) {
         return values.lastIndexOf(pData);
     }
 
 
     @Override
     @NotNull
-    public DataListIterator<T, Integer> dataListIteratorIterator() {
+    public DataListIterator<T, Integer> listIterator() {
         return new DataIntegerListIterator<>(values);
     }
 
     @Override
     @NotNull
-    public DataListIterator<T, Integer> dataListIteratorIterator(@NotNull Integer pIndex) {
+    public DataListIterator<T, Integer> listIterator(@NotNull Integer pIndex) {
         final DataListIterator<T, Integer> result = new DataIntegerListIterator<>();
         {
             int index = NULL_INDEX;
@@ -386,3 +395,4 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
         return result;
     }
 }
+*/

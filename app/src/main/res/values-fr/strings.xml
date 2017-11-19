@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:2.0">
     <string name="app_name">Mes Factures</string>
     <string name="id_already_used">L\'id est déja utilisé.</string>
     <string name="missing_value">Valeur(s) manquante(s)</string>
     <string name="choose_an_email_client">Choisir un client e-mail</string>
     <string name="add_product" formatted="true">%1$s un <xliff:g id="product" example="product" css-style="text-transform:lowercase;">%2$s</xliff:g></string>
     <string name="taxe_code">Code de la %1$s (si il y a lieu)</string>
-    <string name="delete_message">Êtes-vous sûr de vouloir supprimer ceci?</string>
+    <string name="delete_message">Êtes-vous sûr de vouloir supprimer les factures?</string>
     <string name="do_you_want_delete_or_edit_this_invoice">Voulez-vous supprimer ou modifier cette facture?</string>
     <string name="settings">Paramètres</string>
     <string name="action_save_database_on_drive">Sauvegarder la base de données sur le Drive</string>

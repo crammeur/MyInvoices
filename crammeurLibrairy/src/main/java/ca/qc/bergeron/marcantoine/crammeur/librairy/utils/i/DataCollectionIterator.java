@@ -41,7 +41,7 @@ public interface DataCollectionIterator<T extends Data<K>, K extends Serializabl
     boolean isEmpty();
 
     @NotNull
-    K indexOf(@Nullable K pKey);
+    K indexOfKey(@Nullable K pKey);
 
     /**
      * Return mIndex for current data in currentCollection method
@@ -78,19 +78,19 @@ public interface DataCollectionIterator<T extends Data<K>, K extends Serializabl
     @NotNull
     Collection<T> collectionOf(@NotNull K pIndex);
 
-    boolean addAll(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) Iterable<? extends T> pIterable);
+    <E extends T> void addAll(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) DataListIterator<E, K> pDataListIterator);
 
-    boolean addAll(@NotNull K pIndex, @NotNull Iterable<? extends T> pDataIterable);
+    <E extends T> void addAll(@NotNull K pIndex, @NotNull DataListIterator<E, K> pDataListIterator);
 
     boolean contains(@NotNull T pData);
 
-    boolean containsAll(@NotNull Iterable<? extends T> pIterable);
+    <E extends T> boolean containsAll(@NotNull DataListIterator<E, K> pDataListIterator);
 
-    boolean remove(@NotNull T pData);
+    void remove(@NotNull T pData);
 
-    boolean removeAll(@NotNull Iterable<? extends T> pIterable);
+    <E extends T> void removeAll(@NotNull DataListIterator<E, K> pDataListIterator);
 
-    boolean retainAll(@NotNull Iterable<? extends T> pIterable);
+    <E extends T> void retainAll(@NotNull DataListIterator<E, K> pDataListIterator);
 
     void clear();
 

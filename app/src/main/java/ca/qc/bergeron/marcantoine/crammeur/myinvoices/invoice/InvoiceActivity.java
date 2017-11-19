@@ -233,7 +233,7 @@ public class InvoiceActivity extends AppCompatActivity {
         TextView tvProducts = findViewById(R.id.tvInvoiceProducts);
         tvProducts.setText(getString(R.string.word_plurial, getString(R.string.product)));
         Button btnAddProduct = (Button) findViewById(R.id.btnInvoiceAddProduct);
-        btnAddProduct.setText(getResources().getString(ca.qc.bergeron.marcantoine.crammeur.R.string.add) + " " + getResources().getString(ca.qc.bergeron.marcantoine.crammeur.R.string.product).toLowerCase());
+        btnAddProduct.setText(getString(R.string.add_product, getString(R.string.add), getString(R.string.product)));
 
         tvSubtotal = (TextView) findViewById(R.id.tvInvoiceSubtotal);
         TextView tvHST = findViewById(R.id.tvInvoiceHST);

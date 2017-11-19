@@ -89,7 +89,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -166,6 +165,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     public void onResume() {
         super.onResume();
+
         TextView tvGST = findViewById(R.id.tvMainGST);
         tvGST.setText((Settings.GSTName.equals("")?getString(R.string.gst):Settings.GSTName));
         TextView tvPST = findViewById(R.id.tvMainPST);
@@ -354,7 +354,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                                     try {
                                         File pdf = new File(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),"My Invoices/PDF"),"Invoice-Facture#" + content.mItem.Id + ".pdf");
                                         File csv = new File(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),"My Invoices/CSV"),"Invoice-Facture#" + content.mItem.Id + ".csv");
-                                        System.gc();
                                         if (pdf.exists()) if (!pdf.delete()) throw new RuntimeException(new IOException("Delete pdf"));
                                         if (csv.exists()) if (!csv.delete()) throw new RuntimeException(new IOException("Delete csv"));
                                         Service.Invoices.delete(content.mItem.Invoice.Id);

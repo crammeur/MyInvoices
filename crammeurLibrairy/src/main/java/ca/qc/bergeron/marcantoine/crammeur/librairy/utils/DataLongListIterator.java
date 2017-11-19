@@ -4,15 +4,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.NoSuchElementException;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
-import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataCollectionIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator;
 
 /**
@@ -23,9 +20,9 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
     protected final LinkedList<LinkedList<T>>[] values = new LinkedList[2];
     protected transient volatile long mIndex = NULL_INDEX;
-    private transient volatile long mSize = 0L;
+    protected transient volatile long mSize = 0L;
 
-    public DataLongListIterator(Iterable<T> pIterable) {
+/*    public DataLongListIterator(Iterable<T> pIterable) {
         this(pIterable,false);
     }
 
@@ -52,11 +49,11 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
             }
 
             @Override
-            public synchronized boolean async() {
+            public boolean async() {
                 return pAsync;
             }
         });
-    }
+    }*/
 
     private DataLongListIterator(@NotNull LinkedList<LinkedList<T>> pListOne, @NotNull LinkedList<LinkedList<T>> pListTwo) {
         values[0] = pListOne;
@@ -95,11 +92,12 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Override
-    protected void finalize() throws Throwable {
+    protected final void finalize() throws Throwable {
         super.finalize();
         values[0] = null;
         values[1] = null;
         mIndex = NULL_INDEX;
+        mSize = 0L;
     }
 
     @Override
@@ -115,10 +113,10 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
     @Override
     @NotNull
-    public final Long indexOf(@Nullable final Long pKey) {
+    public final Long indexOfKey(@Nullable final Long pKey) {
         long result = NULL_INDEX;
-        for (Collection<T> collecttion : this.allCollections()) {
-            Iterator<Integer> iterator = Parallel.For(collecttion, new Parallel.Operation<T, Integer>() {
+        for (Collection<T> collection : this.allCollections()) {
+            Iterator<Integer> iterator = Parallel.For(collection, new Parallel.Operation<T, Integer>() {
                 boolean follow = true;
                 boolean result = false;
                 int index = NULL_INDEX;
@@ -174,7 +172,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 @Override
                 public synchronized Boolean perform(LinkedList<T> pParameter) {
                     result = pParameter.contains(pData);
-                    if (result) follow = false;
+                    follow = !result;
                     return result;
                 }
 
@@ -253,9 +251,9 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     @Override
     @NotNull
     public final LinkedList<T> currentCollection() {
-        final int arrayIndex = (int) (mIndex / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX));
+        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
-                ? BigDecimal.valueOf(((mIndex / ((long) MAX_COLLECTION_INDEX + 1)) + 1)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_HALF_UP).add(BigDecimal.ONE.negate()).multiply(BigDecimal.valueOf(2)).intValue()
+                ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1)*((long) MAX_COLLECTION_INDEX +1))) / ((long) MAX_COLLECTION_INDEX + 1))
                 : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
         return new LinkedList<>(values[arrayIndex].get(listIndex));
     }
@@ -263,79 +261,84 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     @Override
     @NotNull
     public final Iterable<Collection<T>> allCollections() {
-        final List<Collection<T>> result = new ArrayList<>();
-        for (int arrayIndex=0;arrayIndex<2;arrayIndex++) {
-            Parallel.For(values[arrayIndex], new Parallel.Operation<LinkedList<T>, Void>() {
-                @Override
-                public Void perform(LinkedList<T> pParameter) {
-                    synchronized (result) {
-                        result.add(pParameter);
+        return new Iterable<Collection<T>>() {
+            @NotNull
+            @Override
+            public Iterator<Collection<T>> iterator() {
+                return new Iterator<Collection<T>>() {
+                    private LinkedList<LinkedList<T>>[] values = DataLongListIterator.this.values;
+                    private transient volatile long mIndex = NULL_INDEX;
+                    private transient volatile long mSize = values[0].size() + values[1].size();
+                    @Override
+                    public boolean hasNext() {
+                        return mIndex + 1 < mSize;
                     }
-                    return null;
-                }
 
-                @Override
-                public boolean follow() {
-                    return true;
-                }
+                    @Override
+                    public Collection<T> next() {
+                        if (mIndex + 1 < Integer.MAX_VALUE) {
+                            return values[0].get((int)(++mIndex));
+                        } else {
+                            return values[1].get((int)((++mIndex)%Integer.MAX_VALUE));
+                        }
+                    }
 
-                @Override
-                public boolean result() {
-                    return false;
-                }
+                    @Override
+                    public void remove() {
+                        if (mIndex < Integer.MAX_VALUE) {
+                            values[0].remove((int)mIndex);
+                        } else {
+                            values[1].remove((int)(mIndex%Integer.MAX_VALUE));
+                        }
+                    }
 
-                @Override
-                public boolean async() {
-                    return false;
-                }
-            });
-        }
-        return result;
+                };
+            }
+        };
     }
 
     @Override
     @NotNull
     public final LinkedList<T> collectionOf(@NotNull Long pIndex) {
-        final int arrayIndex = (int) (pIndex / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX));
+        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
-                ? BigDecimal.valueOf(((pIndex / ((long) MAX_COLLECTION_INDEX + 1)) + 1)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_HALF_UP).add(BigDecimal.ONE.negate()).multiply(BigDecimal.valueOf(2)).intValue()
+                ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1)*((long) MAX_COLLECTION_INDEX +1))) / ((long) MAX_COLLECTION_INDEX + 1))
                 : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
         return new LinkedList<>(values[arrayIndex].get(listIndex));
     }
 
     @Override
     public final int nextIndex() {
-        if (mIndex != Long.MAX_VALUE) {
+        if (mIndex + 1 != Long.MAX_VALUE && mIndex + 1 < mSize) {
             return collectionIndexOf(mIndex + 1);
         } else {
-            return MIN_INDEX;
+            return collectionIndexOf(mSize);
         }
     }
 
     @Override
     public final int previousIndex() {
-        if (mIndex != MIN_INDEX) {
+        if (mIndex - 1 > MIN_INDEX && mIndex != NULL_INDEX) {
             return collectionIndexOf(mIndex - 1);
         } else {
-            return MAX_COLLECTION_INDEX;
+            return NULL_INDEX;
         }
     }
 
     @Override
     public final void remove() {
-        if (mIndex == NULL_INDEX) throw new IndexOutOfBoundsException(String.valueOf(NULL_INDEX));
+        if (mIndex == NULL_INDEX) throw new IllegalStateException(String.valueOf(NULL_INDEX));
         this.remove(this.actual());
     }
 
     @Override
     public final void set(@NotNull T t) {
-        if (mIndex == NULL_INDEX) throw new IndexOutOfBoundsException(String.valueOf(NULL_INDEX));
-        final int arrayIndex = (int) (mIndex / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX));
+        if (mIndex == NULL_INDEX) throw new IllegalStateException(String.valueOf(NULL_INDEX));
+        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
-                ? BigDecimal.valueOf(((mIndex / ((long) MAX_COLLECTION_INDEX + 1)) + 1)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_HALF_UP).add(BigDecimal.ONE.negate()).multiply(BigDecimal.valueOf(2)).intValue()
+                ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1)*((long) MAX_COLLECTION_INDEX +1))) / ((long) MAX_COLLECTION_INDEX + 1))
                 : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
-        final int currentCollectionIndex = this.currentCollectionIndex();
-        values[arrayIndex].get(listIndex).set(currentCollectionIndex, t);
+        values[arrayIndex].get(listIndex).set(this.currentCollectionIndex(), t);
     }
 
     /**
@@ -344,10 +347,10 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
      */
     @Override
     public final void add(@NotNull T pData) {
-        final int arrayIndex = (int) ((mSize - 1) / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX));
+        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
-                ? BigDecimal.valueOf((((mSize - 1) / ((long) MAX_COLLECTION_INDEX + 1)) + 1)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_HALF_UP).add(BigDecimal.ONE.negate()).multiply(BigDecimal.valueOf(2)).intValue()
-                : (int) ((mSize - 1) / ((long) MAX_COLLECTION_INDEX + 1));
+                ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1)*((long) MAX_COLLECTION_INDEX +1))) / ((long) MAX_COLLECTION_INDEX + 1))
+                : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
         if (values[arrayIndex].isEmpty() || (listIndex > 0 && values[arrayIndex].get(listIndex-1).size() == Integer.MAX_VALUE)) {
             values[arrayIndex].add(new LinkedList<T>());
         }
@@ -356,28 +359,25 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Override
-    public final boolean remove(@NotNull final T o) {
-        boolean result = false;
-        boolean gc = false;
+    public final void remove(@NotNull final T pData) {
         class ParallelResult {
             long index;
-            Data data;
+            Data<Long> data;
         }
         long index = NULL_INDEX;
-        final ParallelResult parallelResult = new ParallelResult();
         for (final LinkedList<LinkedList<T>> lla : values) {
-            gc = true;
             LinkedList<T> list = null;
+            boolean result = false;
             for (final LinkedList<T> ll : lla) {
-                Data d = null;
-                Parallel.Operation<T,ParallelResult> parallelOperation = new Parallel.Operation<T, ParallelResult>() {
+                Data<Long> data = null;
+                Parallel.Operation<T,ParallelResult> operation = new Parallel.Operation<T, ParallelResult>() {
                     boolean follow = true;
                     boolean result = false;
                     int tIndex = NULL_INDEX;
                     @Override
                     public synchronized ParallelResult perform(final T pParameter) {
                         tIndex++;
-                        result = o.equals(pParameter);
+                        result = pData.equals(pParameter);
                         follow = !result;
                         return new ParallelResult(){{this.index = tIndex;this.data = pParameter;}};
                     }
@@ -397,24 +397,20 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                         return false;
                     }
                 };
-                for (ParallelResult parallelResult1 :
-                        Parallel.For(ll, parallelOperation)) {
-                    d = parallelResult1.data;
+                for (ParallelResult parallelResult :
+                        Parallel.For(ll, operation)) {
+                    data = parallelResult.data;
                     index = parallelResult.index;
                 }
 
-                if (d != null) {
+                if (data != null) {
                     list = ll;
                     break;
                 }
-                if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                    System.gc();
-                if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                    gc = false;
             }
 
             if (list != null) {
-                result = list.remove(o);
+                result = list.remove(pData);
                 if (result) {
                     if (index <= mIndex) {
                         mIndex--;
@@ -423,51 +419,77 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 }
             }
             if (result) break;
-            if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                System.gc();
-            if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                gc = false;
-
         }
-        if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) System.gc();
-        return result;
     }
 
     @Override
-    public boolean retainAll(@NotNull Iterable<? extends T> collection) {
-        final DataCollectionIterator<T, Long> c = new DataLongListIterator<T>();
-        boolean gc = false;
-        for (final T data : collection) {
-            gc = true;
-            c.add(data);
-            if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                System.gc();
-            if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                gc = false;
+    public final <E extends T> void retainAll(@NotNull DataListIterator<E, Long> pDataListIterator) {
+        final DataLongListIterator<T> dlli = new DataLongListIterator<T>();
+        for (Collection<E> collection : pDataListIterator.allCollections()) {
+            Parallel.For(collection, new Parallel.Operation<E,Void>() {
 
+                @Override
+                public Void perform(E pParameter) {
+                    synchronized (dlli) {
+                        dlli.add(pParameter);
+                    }
+                    return null;
+                }
+
+                @Override
+                public boolean follow() {
+                    return true;
+                }
+
+                @Override
+                public boolean result() {
+                    return false;
+                }
+
+                //No order preference
+                @Override
+                public boolean async() {
+                    return true;
+                }
+            });
         }
-        if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-            System.gc();
-        gc = (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-        boolean result = true;
-        for (final T data : this) {
-            if (!c.contains(data) && !this.remove(data)) result = false;
-            if (!result) break;
-            if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                System.gc();
-            if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                gc = false;
+
+        for (Collection<T> collection : this.allCollections()) {
+            Parallel.For(collection, new Parallel.Operation<T, Void>() {
+                @Override
+                public Void perform(T pParameter) {
+                    if (!dlli.contains(pParameter)) {
+                        synchronized (DataLongListIterator.this) {
+                            DataLongListIterator.this.remove(pParameter);
+                        }
+                    }
+                    return null;
+                }
+
+                @Override
+                public boolean follow() {
+                    return true;
+                }
+
+                @Override
+                public boolean result() {
+                    return false;
+                }
+
+                @Override
+                public boolean async() {
+                    return true;
+                }
+            });
         }
-        if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-            System.gc();
-        return result;
     }
 
     @Override
-    public void clear() {
+    public final void clear() {
         values[0].clear();
         values[1].clear();
         mIndex = NULL_INDEX;
+        mSize = 0L;
     }
 
     @Override
@@ -476,31 +498,45 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Override
-    public boolean addAll(@NotNull Long pIndex, @NotNull Iterable<? extends T> var2) {
-        boolean result = true;
-        long index = pIndex;
-        boolean gc = false;
-        for (final T data : var2) {
-            gc = true;
-            final int arrayIndex = (int) (index / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX));
-            final int listIndex = (arrayIndex == 1)
-                    ? BigDecimal.valueOf(((index / ((long) MAX_COLLECTION_INDEX + 1)) + 1))
-                    .divide(BigDecimal.valueOf(2), BigDecimal.ROUND_HALF_UP)
-                    .add(BigDecimal.ONE.negate())
-                    .multiply(BigDecimal.valueOf(2)).intValue()
-                    : (int) (index / ((long) MAX_COLLECTION_INDEX + 1));
-            values[arrayIndex].get(listIndex).add(collectionIndexOf(index), data);
-            if (!values[arrayIndex].get(listIndex).contains(data)) result = false;
-            if (!result) break;
-            index++;
-            if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                System.gc();
-            if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                gc = false;
+    public <E extends T> void addAll(@NotNull final Long pIndex, @NotNull DataListIterator<E, Long> pDataListIterator) {
+        Parallel.Operation<E,Void> operation = new Parallel.Operation<E, Void>() {
+            long index = pIndex;
+            @Override
+            public Void perform(E pParameter) {
+                final int arrayIndex = (int) (index / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX));
+                final int listIndex = (arrayIndex == 1)
+                        ? BigDecimal.valueOf(((index / ((long) MAX_COLLECTION_INDEX + 1)) + 1))
+                        .divide(BigDecimal.valueOf(2), BigDecimal.ROUND_HALF_UP)
+                        .add(BigDecimal.ONE.negate())
+                        .multiply(BigDecimal.valueOf(2)).intValue()
+                        : (int) (index / ((long) MAX_COLLECTION_INDEX + 1));
+                synchronized (DataLongListIterator.this.values) {
+                    values[arrayIndex].get(listIndex).add(collectionIndexOf(index), pParameter);
+                }
+                synchronized (this) {
+                    index++;
+                }
+                return null;
+            }
+
+            @Override
+            public boolean follow() {
+                return true;
+            }
+
+            @Override
+            public boolean result() {
+                return false;
+            }
+
+            @Override
+            public boolean async() {
+                return false;
+            }
+        };
+        for (Collection<E> collection : pDataListIterator.allCollections()) {
+            Parallel.For(collection, operation);
         }
-        if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-            System.gc();
-        return result;
     }
 
     @Override
@@ -517,10 +553,10 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                     boolean result = false;
                     @Override
                     public synchronized Boolean perform(T pParameter) {
-                        boolean result;
-                        result = pParameter.equals(iterator.next());
-                        if (!result) this.result = true;
-                        return follow = !this.result;
+                        boolean result = pParameter.equals(iterator.next());
+                        this.result = !result;
+                        this.follow = result;
+                        return result;
                     }
 
                     @Override
@@ -543,51 +579,40 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 }
                 if (!result) break;
             }
-            if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                System.gc();
         }
         return result;
     }
 
     @Override
     @Nullable
-    public T get(@NotNull Long pIndex) {
-        final int arrayIndex = (int) (pIndex / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX + 1));
+    public final T get(@NotNull Long pIndex) {
+        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
-                ? BigDecimal.valueOf(((pIndex / ((long) MAX_COLLECTION_INDEX + 1)) + 1))
-                .divide(BigDecimal.valueOf(2), BigDecimal.ROUND_HALF_UP)
-                .add(BigDecimal.ONE.negate())
-                .multiply(BigDecimal.valueOf(2)).intValue()
-                : (int) (pIndex / ((long) MAX_COLLECTION_INDEX + 1));
+                ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1)*((long) MAX_COLLECTION_INDEX +1))) / ((long) MAX_COLLECTION_INDEX + 1))
+                : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
         if (values[arrayIndex].get(listIndex) == null) return null;
         return values[arrayIndex].get(listIndex).get(collectionIndexOf(pIndex));
     }
 
     @Override
     @Nullable
-    public T set(@NotNull Long pIndex, @NotNull T pData) {
-        final int arrayIndex = (int) (pIndex / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX + 1));
+    public final T set(@NotNull Long pIndex, @NotNull T pData) {
+        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
-                ? BigDecimal.valueOf(((pIndex / ((long) MAX_COLLECTION_INDEX + 1)) + 1))
-                .divide(BigDecimal.valueOf(2), BigDecimal.ROUND_HALF_UP)
-                .add(BigDecimal.ONE.negate())
-                .multiply(BigDecimal.valueOf(2)).intValue()
-                : (int) (pIndex / ((long) MAX_COLLECTION_INDEX + 1));
+                ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1)*((long) MAX_COLLECTION_INDEX +1))) / ((long) MAX_COLLECTION_INDEX + 1))
+                : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
         if (values[arrayIndex].get(listIndex) == null) return null;
         return values[arrayIndex].get(listIndex).set(collectionIndexOf(pIndex), pData);
     }
 
     @Override
-    public void add(@NotNull Long pIndex, @NotNull T pData) {
+    public final void add(@NotNull Long pIndex, @NotNull T pData) {
         final long index = pIndex;
         final T data = pData;
-        final int arrayIndex = (int) (pIndex / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX + 1));
+        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
-                ? BigDecimal.valueOf(((pIndex / ((long) MAX_COLLECTION_INDEX + 1)) + 1))
-                .divide(BigDecimal.valueOf(2), BigDecimal.ROUND_HALF_UP)
-                .add(BigDecimal.ONE.negate())
-                .multiply(BigDecimal.valueOf(2)).intValue()
-                : (int) (pIndex / ((long) MAX_COLLECTION_INDEX + 1));
+                ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1)*((long) MAX_COLLECTION_INDEX +1))) / ((long) MAX_COLLECTION_INDEX + 1))
+                : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
         if (values[arrayIndex].get(listIndex) != null) {
             values[arrayIndex].get(listIndex).add(collectionIndexOf(index), data);
         } else {
@@ -598,146 +623,194 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
         if (pIndex <= this.mIndex) this.mIndex++;
     }
 
-    @Override
+/*    @Override
     @Nullable
-    public T remove(@NotNull Long pIndex) {
-        final int arrayIndex = (int) (pIndex / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX + 1));
+    public final T remove(@NotNull Long pIndex) {
+        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
-                ? BigDecimal.valueOf(((pIndex / ((long) MAX_COLLECTION_INDEX + 1)) + 1))
-                .divide(BigDecimal.valueOf(2), BigDecimal.ROUND_HALF_UP)
-                .add(BigDecimal.ONE.negate())
-                .multiply(BigDecimal.valueOf(2)).intValue()
-                : (int) (pIndex / ((long) MAX_COLLECTION_INDEX + 1));
+                ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1)*((long) MAX_COLLECTION_INDEX +1))) / ((long) MAX_COLLECTION_INDEX + 1))
+                : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
         if (values[arrayIndex].get(listIndex) == null) return null;
         if (pIndex <= mIndex) {
             mIndex--;
         }
         return values[arrayIndex].get(listIndex).remove(collectionIndexOf(pIndex));
-    }
-
-    @NotNull
-    @Override
-    public LinkedList<T> lastListOf(@NotNull Long pIndex) {
-        return collectionOf(pIndex);
-    }
+    }*/
 
     @Override
     @NotNull
-    public Long listIndexOf(@NotNull T pData) {
-        return indexOf(pData.getId());
-    }
-
-    @Override
-    @NotNull
-    public Long lastListIndexOf(@NotNull T pData) {
-        long result = NULL_INDEX;
-        long index = NULL_INDEX;
-        boolean gc = false;
-        for (final LinkedList<LinkedList<T>> lla : values) {
-            gc = true;
-            for (final LinkedList<T> ll : lla) {
-                for (final T data : ll) {
+    public final Long indexOf(@NotNull final T pData) {
+        final long[] result = new long[1];
+        result[0] = NULL_INDEX;
+        Parallel.Operation<T,Void> operation = new Parallel.Operation<T, Void>() {
+            long index = NULL_INDEX;
+            boolean follow = true;
+            @Override
+            public Void perform(T pParameter) {
+                synchronized (this) {
                     index++;
-                    if (pData.equals(data)) {
-                        result = index;
-                    }
-                    if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                        System.gc();
-                    if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) {
-                        gc = false;
-                    }
-
                 }
-                if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                    System.gc();
-                if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) {
-                    gc = false;
+                if (pData.equals(pParameter)) {
+                    synchronized (DataLongListIterator.this) {
+                        result[0] = index;
+                    }
+                    synchronized (this) {
+                        follow = false;
+                    }
                 }
+                return null;
             }
-            if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                System.gc();
-            if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                gc = false;
-        }
-        if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-            System.gc();
-        return result;
-    }
 
-    @NotNull
-    @Override
-    public DataListIterator<T, Long> dataListIteratorIterator() {
-        return new DataLongListIterator<>(values[0], values[1]);
-    }
-
-    @NotNull
-    @Override
-    public DataListIterator<T, Long> dataListIteratorIterator(@NotNull Long pIndex) {
-        DataListIterator<T, Long> result = new DataLongListIterator<>();
-        long index = NULL_INDEX;
-        boolean gc = false;
-        for (T data : this) {
-            index++;
-            gc = true;
-            if (index >= pIndex) {
-                result.add(data);
+            @Override
+            public boolean follow() {
+                return follow;
             }
-            if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                System.gc();
-            if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                gc = false;
+
+            @Override
+            public boolean result() {
+                return false;
+            }
+
+            @Override
+            public boolean async() {
+                return false;
+            }
+        };
+        for (Collection<T> collection : this.allCollections()) {
+            Parallel.For(collection,operation);
         }
-        if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-            System.gc();
-        return result;
+        return result[0];
+    }
+
+    @Override
+    @NotNull
+    public final Long lastIndexOf(@NotNull final T pData) {
+        final long[] result = new long[1];
+        result[0] = NULL_INDEX;
+        Parallel.Operation<T,Void> operation = new Parallel.Operation<T, Void>() {
+            long index = NULL_INDEX;
+            @Override
+            public Void perform(T pParameter) {
+                synchronized (this) {
+                    index++;
+                }
+                if (pData.equals(pParameter)) {
+                    synchronized (DataLongListIterator.this) {
+                        result[0] = index;
+                    }
+                }
+                return null;
+            }
+
+            @Override
+            public boolean follow() {
+                return false;
+            }
+
+            @Override
+            public boolean result() {
+                return false;
+            }
+
+            @Override
+            public boolean async() {
+                return false;
+            }
+        };
+        for (Collection<T> collection : this.allCollections()) {
+            Parallel.For(collection,operation);
+        }
+        return result[0];
     }
 
     @NotNull
     @Override
-    public DataListIterator<T, Long> subDataListIterator(@NotNull Long pIndex1, @NotNull Long pIndex2) {
+    public final DataListIterator<T, Long> listIterator() {
+        return new DataLongListIterator<>(values[0],values[1]);
+    }
+
+    @NotNull
+    @Override
+    public final DataListIterator<T, Long> listIterator(@NotNull final Long pIndex) {
         final DataListIterator<T, Long> result = new DataLongListIterator<>();
-        boolean find = false;
-        long index = NULL_INDEX;
-        boolean gc = false;
-        for (final LinkedList<LinkedList<T>> lla : values) {
-            gc = true;
-            boolean gc2 = false;
-            for (final LinkedList<T> ll : lla) {
-                gc2 = gc;
-                boolean gc3 = false;
-                for (final T data : ll) {
+        Parallel.Operation<T,Void> operation = new Parallel.Operation<T, Void>() {
+            long index = NULL_INDEX;
+            @Override
+            public Void perform(T pParameter) {
+                synchronized (this) {
                     index++;
-                    if (index >= pIndex1 && index <= pIndex2) {
-                        result.add(data);
-                    } else if (index > pIndex2) {
-                        find = true;
-                        break;
-                    }
-                    gc3 = gc2;
-                    if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                        System.gc();
-                    if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) {
-                        gc = false;
-                        gc2 = false;
-                        gc3 = false;
+                }
+                if (index >= pIndex) {
+                    synchronized (DataLongListIterator.this) {
+                        result.add(pParameter);
                     }
                 }
-                if (find) break;
-                if (gc3 && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                    System.gc();
-                if (gc3 && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) {
-                    gc = false;
-                    gc2 = false;
-                }
+                return null;
             }
-            if (find) break;
-            if (gc2 && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                System.gc();
-            if (gc2 && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                gc = false;
+
+            @Override
+            public boolean follow() {
+                return true;
+            }
+
+            @Override
+            public boolean result() {
+                return false;
+            }
+
+            @Override
+            public boolean async() {
+                return false;
+            }
+        };
+        for (Collection<T> collection : this.allCollections()) {
+            Parallel.For(collection, operation);
         }
-        if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-            System.gc();
+        return result;
+    }
+
+    @NotNull
+    @Override
+    public final DataListIterator<T, Long> subDataListIterator(@NotNull final Long pIndex1, @NotNull final Long pIndex2) {
+        final DataListIterator<T, Long> result = new DataLongListIterator<>();
+        Parallel.Operation<T,Void> operation = new Parallel.Operation<T, Void>() {
+            long index = NULL_INDEX;
+            boolean follow = true;
+            @Override
+            public Void perform(T pParameter) {
+                synchronized (this) {
+                    index++;
+                }
+                if (index >= pIndex1 && index < pIndex2) {
+                    synchronized (DataLongListIterator.this) {
+                        result.add(pParameter);
+                    }
+                } else if (index >= pIndex2) {
+                    synchronized (this) {
+                        follow = false;
+                    }
+                }
+                return null;
+            }
+
+            @Override
+            public boolean follow() {
+                return follow;
+            }
+
+            @Override
+            public boolean result() {
+                return false;
+            }
+
+            @Override
+            public boolean async() {
+                return false;
+            }
+        };
+        for (Collection<T> collection : this.allCollections()) {
+            Parallel.For(collection,operation);
+        }
         return result;
     }
 }

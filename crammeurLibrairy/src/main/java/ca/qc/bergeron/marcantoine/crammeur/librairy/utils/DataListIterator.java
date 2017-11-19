@@ -4,6 +4,7 @@ import org.intellij.lang.annotations.Flow;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
+import java.util.Collection;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
 
@@ -12,8 +13,6 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
  */
 
 abstract class DataListIterator<T extends Data<K>, K extends Serializable> implements ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator<T, K> {
-
-    transient final float PERCENT_MEMORY_MAX = 0.7f;
 
     @Override
     public final int currentCollectionSize() {
@@ -26,37 +25,98 @@ abstract class DataListIterator<T extends Data<K>, K extends Serializable> imple
     }
 
     @Override
-    public final boolean containsAll(@NotNull Iterable<? extends T> collection) {
-        boolean result = true;
-        for (final T data : collection) {
-            if (!this.contains(data)) result = false;
-            if (!result) break;
+    public final <E extends T> boolean containsAll(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator<E, K> pDataListIterator) {
+        final boolean[] result = new boolean[1];
+        result[0] = (this.isEmpty() && pDataListIterator.isEmpty());
+        for (Collection<E> collection : pDataListIterator.allCollections()) {
+            Parallel.For(collection, new Parallel.Operation<E, Void>() {
+                boolean follow = true;
+                @Override
+                public Void perform(E pParameter) {
+                    synchronized (result) {
+                        result[0] = DataListIterator.this.contains(pParameter);
+                    }
+                    synchronized (this) {
+                        follow = result[0];
+                    }
+                    return null;
+                }
+
+                @Override
+                public boolean follow() {
+                    return follow;
+                }
+
+                @Override
+                public boolean result() {
+                    return false;
+                }
+
+                @Override
+                public boolean async() {
+                    return true;
+                }
+            });
         }
-        System.gc();
-        return result;
+        return result[0];
     }
 
     @Override
-    public final boolean addAll(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) Iterable<? extends T> collection) {
-        boolean result = true;
-        for (final T data : collection) {
-            this.add(data);
-            if (!this.contains(data)) result = false;
-            if (!result) break;
+    public final <E extends T> void addAll(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator<E, K> pDataListIterator) {
+        for (Collection<E> collection : pDataListIterator.allCollections()) {
+            Parallel.For(collection, new Parallel.Operation<E, Void>() {
+                @Override
+                public Void perform(E pParameter) {
+                    synchronized (DataListIterator.this) {
+                        DataListIterator.this.add(pParameter);
+                    }
+                    return null;
+                }
+
+                @Override
+                public boolean follow() {
+                    return true;
+                }
+
+                @Override
+                public boolean result() {
+                    return false;
+                }
+
+                @Override
+                public boolean async() {
+                    return false;
+                }
+            });
         }
-        System.gc();
-        return result;
     }
 
     @Override
-    public final boolean removeAll(@NotNull Iterable<? extends T> collection) {
-        boolean result = true;
-        for (final T data : collection) {
-            if (!this.contains(data) || (this.contains(data) && !this.remove(data))) result = false;
-            if (!result) break;
+    public final <E extends T> void removeAll(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator<E, K> pDataListIterator) {
+        for (Collection<E> collection : pDataListIterator.allCollections()) {
+            Parallel.For(collection, new Parallel.Operation<E, Void>() {
+                @Override
+                public Void perform(E pParameter) {
+                    DataListIterator.this.remove(pParameter);
+                    return null;
+                }
+
+                @Override
+                public boolean follow() {
+                    return true;
+                }
+
+                @Override
+                public boolean result() {
+                    return false;
+                }
+
+                @Override
+                public boolean async() {
+                    return true;
+                }
+            });
         }
-        System.gc();
-        return result;
     }
 
 }
