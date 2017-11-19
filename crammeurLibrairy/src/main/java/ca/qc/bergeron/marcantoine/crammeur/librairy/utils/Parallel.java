@@ -5,7 +5,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.Callable;
@@ -209,7 +208,7 @@ public final class Parallel {
         return callables;
     }
 
-    @NotNull
+/*    @NotNull
     public static <T,R> Iterable<Callable<R>> createCallables(final Iterable<T> elements, final Operation<T,R> operation) {
         ExecutorService executor = Executors.newFixedThreadPool(MAX_THREAD);
         final Collection<Callable<R>> result = new LinkedList<>();
@@ -254,7 +253,7 @@ public final class Parallel {
             }
         }
         return result;
-    }
+    }*/
 
     public interface Operation<T,R> {
         R perform(T pParameter);
