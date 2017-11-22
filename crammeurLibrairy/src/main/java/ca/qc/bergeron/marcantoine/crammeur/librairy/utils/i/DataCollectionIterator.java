@@ -2,7 +2,6 @@ package ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i;
 
 import org.intellij.lang.annotations.Flow;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -39,12 +38,6 @@ public interface DataCollectionIterator<T extends Data<K>, K extends Serializabl
     int collectionSizeOf(@NotNull K pIndex);
 
     boolean isEmpty();
-
-    @NotNull
-    K indexOfKey(@Nullable K pKey);
-
-    @NotNull
-    K lastIndexOfKey(@Nullable K pKey);
 
     /**
      * Return mIndex for current data in currentCollection method
@@ -91,9 +84,9 @@ public interface DataCollectionIterator<T extends Data<K>, K extends Serializabl
 
     boolean remove(@NotNull T pData);
 
-    <E extends T> void removeAll(@NotNull DataListIterator<E, K> pDataListIterator);
+    <E extends T> boolean removeAll(@NotNull DataListIterator<E, K> pDataListIterator);
 
-    <E extends T> void retainAll(@NotNull DataListIterator<E, K> pDataListIterator);
+    <E extends T> boolean retainAll(@NotNull DataListIterator<E, K> pDataListIterator);
 
     void clear();
 

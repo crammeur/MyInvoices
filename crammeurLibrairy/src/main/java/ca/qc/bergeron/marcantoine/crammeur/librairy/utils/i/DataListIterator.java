@@ -1,6 +1,7 @@
 package ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.List;
@@ -27,6 +28,12 @@ public interface DataListIterator<T extends Data<K>, K extends Serializable> ext
 
     @NotNull
     K lastIndexOf(@NotNull T pData);
+
+    @NotNull
+    K indexOfKey(@Nullable K pKey);
+
+    @NotNull
+    K lastIndexOfKey(@Nullable K pKey);
 
     @NotNull
     @Override

@@ -71,20 +71,28 @@ abstract class DataListIterator<T extends Data<K>, K extends Serializable> imple
     }
 
     @Override
-    public final <E extends T> void removeAll(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator<E, K> pDataListIterator) {
+    public final <E extends T> boolean removeAll(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator<E, K> pDataListIterator) {
+        final boolean[] result = new boolean[1];
         for (Collection<E> collection : pDataListIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
+                boolean follow = true;
                 @Override
                 public void perform(E pParameter) {
-                    DataListIterator.this.remove(pParameter);
+                    synchronized (DataListIterator.this) {
+                        result[0] = DataListIterator.this.remove(pParameter);
+                    }
+                    synchronized (this) {
+                        follow = result[0];
+                    }
                 }
 
                 @Override
                 public boolean follow() {
-                    return true;
+                    return follow;
                 }
             });
         }
+        return result[0];
     }
 
     @Override

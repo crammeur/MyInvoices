@@ -175,7 +175,7 @@ public class UtilsTests {
         Assert.assertTrue(dl.equals(dl3));
 
         Assert.assertTrue(!dl.equals(dl2));
-/*        Assert.assertTrue(dl.remove(data));
+        Assert.assertTrue(dl.remove(data));
         for (int index = 0; index < 10; index++) {
             Data<Long> data3 = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
                 Long Id = null;
@@ -192,8 +192,7 @@ public class UtilsTests {
                 }
             };
             Assert.assertTrue(dl.remove(data3));
-        }*/
-        dl.retainAll(dl2);
+        }
         Assert.assertTrue(!dl.contains(data));
         Assert.assertTrue(dl.remove(data2));
         Assert.assertTrue(dl.size().equals(dl2.size()));
