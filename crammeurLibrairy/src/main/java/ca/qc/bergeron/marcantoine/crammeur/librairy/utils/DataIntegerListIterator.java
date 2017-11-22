@@ -1,4 +1,3 @@
-/*
 package ca.qc.bergeron.marcantoine.crammeur.librairy.utils;
 
 import org.jetbrains.annotations.NotNull;
@@ -11,11 +10,10 @@ import java.util.List;
 import java.util.ListIterator;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
-import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataCollectionIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator;
 
-*
- * Created by Marc-Antoine on 2017-09-18.
+/**
+ * Created by Marc-Antoine on 2017-09-18.*/
 
 
 
@@ -26,39 +24,6 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
 
     private DataIntegerListIterator(LinkedList<T> pValues) {
         values = pValues;
-    }
-
-    public DataIntegerListIterator(Iterable<T> pIterable) {
-        this(pIterable,false);
-
-    }
-
-    public DataIntegerListIterator(@NotNull Iterable<T> pIterable, final boolean pAsync) {
-        values = new LinkedList<T>();
-        Parallel.For(pIterable, new Parallel.Operation<T, Void>() {
-            @Override
-            public Void perform(T pParameter) {
-                synchronized (values) {
-                    values.add(pParameter);
-                }
-                return null;
-            }
-
-            @Override
-            public boolean follow() {
-                return true;
-            }
-
-            @Override
-            public boolean result() {
-                return false;
-            }
-
-            @Override
-            public boolean async() {
-                return pAsync;
-            }
-        });
     }
 
     public DataIntegerListIterator() {
@@ -72,122 +37,114 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     @Override
-    public final boolean hasNext() {
-        final int nextIndex = nextIndex();
-        return nextIndex <= values.size() && nextIndex != NULL_INDEX;
+    public T get(@NotNull Integer pIndex) {
+        return null;
     }
 
     @Override
-    public synchronized final T next() {
-        if (hasNext()) {
-            mIndex++;
-            return values.get(mIndex);
-        } else
-            return null;
+    public T set(@NotNull Integer pIndex, @NotNull T pData) {
+        return null;
     }
 
     @Override
-    public final boolean hasPrevious() {
-        if (mIndex == NULL_INDEX) return false;
-        return previousIndex() != NULL_INDEX;
-    }
+    public void add(@NotNull Integer pIndex, @NotNull T pData) {
 
-    @Override
-    public synchronized final T previous() {
-        if (hasPrevious()) {
-            mIndex--;
-            return values.get(mIndex);
-        } else
-            return null;
-
-    }
-
-    @Override
-    public final int nextIndex() {
-        if (mIndex != MAX_COLLECTION_INDEX) {
-            return mIndex + 1;
-        } else
-            return MIN_INDEX;
-
-    }
-
-    @Override
-    public final int previousIndex() {
-        if (mIndex != MIN_INDEX) {
-            return mIndex - 1;
-        } else
-            return MAX_COLLECTION_INDEX;
-    }
-
-    @Override
-    public final void remove() {
-        values.remove(mIndex);
-    }
-
-    @Override
-    public final void set(@NotNull T e) {
-        if (mIndex == NULL_INDEX) throw new IndexOutOfBoundsException(String.valueOf(NULL_INDEX));
-        values.set(mIndex, e);
-    }
-
-    @Override
-    public final Integer size() {
-        return values.size();
-    }
-
-    @Override
-    public final boolean isEmpty() {
-        return this.size() == 0;
     }
 
     @NotNull
     @Override
-    public final Integer indexOfKey(@Nullable final Integer pKey) {
-        int result = NULL_INDEX;
-        boolean gc = false;
-        for (Collection<T> collecttion : this.allCollections()) {
-            gc = true;
-            Iterator<Integer> iterator = Parallel.For(collecttion, new Parallel.Operation<T, Integer>() {
-                boolean follow = true;
-                boolean result = false;
-                int index = NULL_INDEX;
-                @Override
-                public synchronized Integer perform(T pParameter) {
-                    index++;
-                    if (pKey == null) {
-                        result = pParameter.getId() == null;
-                    } else {
-                        result = pKey.equals(pParameter.getId());
-                    }
-                    follow = !result;
-                    return index;
-                }
+    public Integer indexOf(@NotNull T pData) {
+        return null;
+    }
 
-                @Override
-                public boolean follow() {
-                    return follow;
-                }
+    @NotNull
+    @Override
+    public Integer lastIndexOf(@NotNull T pData) {
+        return null;
+    }
 
-                @Override
-                public boolean result() {
-                    return result;
-                }
+    @NotNull
+    @Override
+    public List<T> currentCollection() {
+        return null;
+    }
 
-                @Override
-                public boolean async() {
-                    return false;
-                }
-            }).iterator();
-            if (!iterator.hasNext()) {
-                result = iterator.next();
-            }
-            if (result != NULL_INDEX) {
-                break;
-            }
-        }
-        if (gc && Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-            System.gc();
-        return result;
+    @NotNull
+    @Override
+    public Iterable<Collection<T>> allCollections() {
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public List<T> collectionOf(@NotNull Integer pIndex) {
+        return null;
+    }
+
+    @Override
+    public <E extends T> void addAll(@NotNull Integer pIndex, @NotNull DataListIterator<E, Integer> pDataListIterator) {
+
+    }
+
+    @Override
+    public boolean contains(@NotNull T pData) {
+        return false;
+    }
+
+    @Override
+    public boolean remove(@NotNull T pData) {
+        return false;
+    }
+
+    @Override
+    public <E extends T> void retainAll(@NotNull DataListIterator<E, Integer> pDataListIterator) {
+
+    }
+
+    @Override
+    public void clear() {
+        values.clear();
+    }
+
+    @NotNull
+    @Override
+    public ListIterator<T> listIterator() {
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public ListIterator<T> listIterator(@NotNull Integer pIndex) {
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public DataListIterator<T, Integer> subDataListIterator(@NotNull Integer pIndex1, @NotNull Integer pIndex2) {
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public Integer size() {
+        return values.size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return values.isEmpty();
+    }
+
+    @NotNull
+    @Override
+    public Integer indexOfKey(@Nullable Integer pKey) {
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public Integer lastIndexOfKey(@Nullable Integer pKey) {
+        return null;
     }
 
     @Override
@@ -195,6 +152,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
         return mIndex;
     }
 
+    @Deprecated
     @Override
     public int collectionIndexOf(@NotNull Integer pIndex) {
         return pIndex;
@@ -202,197 +160,52 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
 
     @NotNull
     @Override
-    public LinkedList<T> currentCollection() {
-        return new LinkedList<>(values);
-    }
-
-    @NotNull
-    @Override
-    public Iterable<Collection<T>> allCollections() {
-        List<Collection<T>> result = new LinkedList<>();
-        result.add(values);
-        return result;
-    }
-
-    @NotNull
-    @Override
-    @Deprecated
-    public LinkedList<T> collectionOf(@NotNull Integer pKey) {
-        return new LinkedList<>(values);
+    public Iterator<T> iterator() {
+        return null;
     }
 
     @Override
-    public boolean contains(@NotNull T o) {
-        return values.contains(o);
+    public boolean hasNext() {
+        return false;
     }
 
     @Override
-    public void add(@NotNull T e) {
-        values.add(e);
+    public T next() {
+        return null;
     }
 
     @Override
-    public void remove(@NotNull T o) {
-        values.remove(o);
+    public boolean hasPrevious() {
+        return false;
     }
 
     @Override
-    public void clear() {
-        values.clear();
-        mIndex = NULL_INDEX;
+    public T previous() {
+        return null;
     }
 
     @Override
-    public final Iterator<T> iterator() {
-        return new DataIntegerListIterator<T>(values);
+    public int nextIndex() {
+        return 0;
     }
 
     @Override
-    public <E extends T> void retainAll(@NotNull DataListIterator<E, Integer> pDataListIterator) {
-        final DataCollectionIterator<T, Integer> c = new DataIntegerListIterator<T>();
-        for (final T data : pDataListIterator) {
-            c.add(data);
-        }
-        boolean result = true;
-        for (final T data : this) {
-            if (!c.contains(data)) result = false;
-            if (!result) break;
-        }
+    public int previousIndex() {
+        return 0;
     }
 
     @Override
-    public final <E extends T> void addAll(@NotNull Integer pIndex, @NotNull Iterable<E> pIterable) {
-        Parallel.For(pIterable, new Parallel.Operation<E, Void>() {
-            @Override
-            public Void perform(E pParameter) {
-                synchronized (DataIntegerListIterator.this) {
-                    DataIntegerListIterator.this.add(pParameter);
-                }
-                return null;
-            }
-
-            @Override
-            public boolean follow() {
-                return true;
-            }
-
-            @Override
-            public boolean result() {
-                return false;
-            }
-
-            @Override
-            public boolean async() {
-                return false;
-            }
-        });
+    public void remove() {
+        values.remove(mIndex);
     }
 
     @Override
-    public final boolean equals(@NotNull DataListIterator<T, Integer> pDataListIterator) {
-        if (this.equals((Object)pDataListIterator)) return true;
-        boolean result = true;
-        Integer size = 0;
-        boolean gc = false;
-        for (T data : this) {
-            gc = true;
-            size++;
-            if (!pDataListIterator.contains(data)) result = false;
-            if (!result) break;
-            if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                System.gc();
-            if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                gc = false;
-        }
-        if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-            System.gc();
-        Integer size2 = 0;
-        if (result) {
-            gc = false;
-            for (T data : pDataListIterator) {
-                gc = (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-                size2++;
-                if (!this.contains(data)) result = false;
-                if (!result || size2 > size) break;
-                if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                    System.gc();
-                if ((Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                    gc = false;
+    public void set(T t) {
 
-            }
-            if (gc && (Runtime.getRuntime().maxMemory() * PERCENT_MEMORY_MAX) < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-                System.gc();
-        }
-        return result && size.equals(size2);
     }
 
     @Override
-    public T get(@NotNull Integer pIndex) {
-        return values.get(pIndex);
-    }
+    public void add(T t) {
 
-    @Override
-    public T set(@NotNull Integer pIndex1, @NotNull T pIndex2) {
-        return values.set(pIndex1, pIndex2);
-    }
-
-    @Override
-    public void add(@NotNull Integer pIndex, @NotNull T pData) {
-        values.add(pIndex, pData);
-    }
-
-    @Override
-    public T remove(@NotNull Integer pIndex) {
-        return values.remove((int) pIndex);
-    }
-
-
-    @Override
-    public Integer indexOf(@NotNull T pData) {
-        return values.indexOf(pData);
-    }
-
-    @Override
-    public Integer lastIndexOf(@NotNull T pData) {
-        return values.lastIndexOf(pData);
-    }
-
-
-    @Override
-    @NotNull
-    public DataListIterator<T, Integer> listIterator() {
-        return new DataIntegerListIterator<>(values);
-    }
-
-    @Override
-    @NotNull
-    public DataListIterator<T, Integer> listIterator(@NotNull Integer pIndex) {
-        final DataListIterator<T, Integer> result = new DataIntegerListIterator<>();
-        {
-            int index = NULL_INDEX;
-            final ListIterator<T> li = values.listIterator(pIndex);
-            while (li.hasNext()) {
-                index++;
-                if (index >= pIndex) {
-                    result.add(li.next());
-                }
-            }
-        }
-        if (Runtime.getRuntime().maxMemory() / 2 < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-            System.gc();
-        return result;
-    }
-
-    @Override
-    @NotNull
-    public DataListIterator<T, Integer> subDataListIterator(@NotNull Integer pIndex1, @NotNull Integer pIndex2) {
-        final DataListIterator<T, Integer> result = new DataIntegerListIterator<>();
-        for (T data : values.subList(pIndex1, pIndex2)) {
-            result.add(data);
-        }
-        if (Runtime.getRuntime().maxMemory() / 2 < Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())
-            System.gc();
-        return result;
     }
 }
-*/

@@ -17,7 +17,7 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator;
 
 public class UtilsTests {
 
-/*    @Test
+    @Test
     public void testDataIntegerList() {
         DataListIterator<Data<Integer>, Integer> dc;
         dc = new DataIntegerListIterator<Data<Integer>>();
@@ -37,7 +37,7 @@ public class UtilsTests {
         };
         dc.add(data);
         Assert.assertTrue(dc.contains(data));
-    }*/
+    }
 
     @Test
     public void testDataLongList() throws InterruptedException {
@@ -156,29 +156,18 @@ public class UtilsTests {
         }
         final DataLongListIterator<Data<Long>> dl3 = new DataLongListIterator<>();
         for (Collection<Data<Long>> collection : dl.allCollections()){
-            Parallel.For(collection, new Parallel.Operation<Data<Long>, Void>() {
+            Parallel.For(collection, new Parallel.Operation<Data<Long>>() {
                 @Override
-                public Void perform(Data<Long> pParameter) {
+                public void perform(Data<Long> pParameter) {
                     System.out.println(pParameter);
                     synchronized (dl3) {
                         dl3.add(pParameter);
                     }
-                    return null;
                 }
 
                 @Override
                 public boolean follow() {
                     return true;
-                }
-
-                @Override
-                public boolean result() {
-                    return false;
-                }
-
-                @Override
-                public boolean async() {
-                    return false;
                 }
             });
         }
@@ -186,8 +175,7 @@ public class UtilsTests {
         Assert.assertTrue(dl.equals(dl3));
 
         Assert.assertTrue(!dl.equals(dl2));
-        dl.remove(data);
-        dl.remove(data2);
+/*        Assert.assertTrue(dl.remove(data));
         for (int index = 0; index < 10; index++) {
             Data<Long> data3 = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
                 Long Id = null;
@@ -203,13 +191,14 @@ public class UtilsTests {
                     this.Id = pId;
                 }
             };
-            dl.remove(data3);
-        }
-
+            Assert.assertTrue(dl.remove(data3));
+        }*/
+        dl.retainAll(dl2);
         Assert.assertTrue(!dl.contains(data));
+        Assert.assertTrue(dl.remove(data2));
         Assert.assertTrue(dl.size().equals(dl2.size()));
         Assert.assertTrue(dl.equals(dl2));
-        dl.remove(new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
+        Assert.assertTrue(dl.remove(new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
             Long Id = count-1;
 
             @Nullable
@@ -222,7 +211,7 @@ public class UtilsTests {
             public void setId(@Nullable Long pId) {
 
             }
-        });
+        }));
         Assert.assertTrue(!dl.equals(dl2));
     }
 }

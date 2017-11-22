@@ -22,64 +22,20 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     protected transient volatile long mIndex = NULL_INDEX;
     protected transient volatile long mSize = 0L;
 
-/*    public DataLongListIterator(Iterable<T> pIterable) {
-        this(pIterable,false);
-    }
-
-    public DataLongListIterator(Iterable<T> pIterable, final boolean pAsync) {
-        values[0] = new LinkedList<>();
-        values[1] = new LinkedList<>();
-        Parallel.For(pIterable, new Parallel.Operation<T, Void>() {
-            @Override
-            public Void perform(T pParameter) {
-                synchronized (DataLongListIterator.this) {
-                    DataLongListIterator.this.add(pParameter);
-                }
-                return null;
-            }
-
-            @Override
-            public boolean follow() {
-                return true;
-            }
-
-            @Override
-            public boolean result() {
-                return false;
-            }
-
-            @Override
-            public boolean async() {
-                return pAsync;
-            }
-        });
-    }*/
-
     private DataLongListIterator(@NotNull LinkedList<LinkedList<T>> pListOne, @NotNull LinkedList<LinkedList<T>> pListTwo) {
         values[0] = pListOne;
         values[1] = pListTwo;
         for (LinkedList<LinkedList<T>> lla : values) {
-            Parallel.For(lla, new Parallel.Operation<LinkedList<T>, Void>() {
+            Parallel.For(lla, new Parallel.Operation<LinkedList<T>>() {
                 @Override
-                public Void perform(LinkedList<T> pParameter) {
+                public void perform(LinkedList<T> pParameter) {
                     synchronized (DataLongListIterator.this) {
                         mSize+=pParameter.size();
                     }
-                    return null;
                 }
 
                 @Override
                 public boolean follow() {
-                    return true;
-                }
-
-                @Override
-                public boolean result() {
-                    return false;
-                }
-
-                @Override
-                public boolean async() {
                     return true;
                 }
             });
@@ -114,47 +70,74 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     @Override
     @NotNull
     public final Long indexOfKey(@Nullable final Long pKey) {
-        long result = NULL_INDEX;
-        for (Collection<T> collection : this.allCollections()) {
-            Iterator<Integer> iterator = Parallel.For(collection, new Parallel.Operation<T, Integer>() {
-                boolean follow = true;
-                boolean result = false;
-                int index = NULL_INDEX;
-                @Override
-                public synchronized Integer perform(T pParameter) {
+        final long[] result = new long[1];
+        result[0] = NULL_INDEX;
+        Parallel.Operation<T> operation = new Parallel.Operation<T>() {
+            boolean follow = true;
+            int index = NULL_INDEX;
+            @Override
+            public void perform(T pParameter) {
+                synchronized (this) {
                     index++;
-                    if (pKey == null) {
-                        result = pParameter.getId() == null;
-                    } else {
-                        result = pKey.equals(pParameter.getId());
+                }
+                if ((pKey == null && pParameter.getId() == null) || (pKey != null && pKey.equals(pParameter.getId()))) {
+                    synchronized (result) {
+                        result[0] = index;
                     }
-                    follow = !result;
-                    return index;
+                    synchronized (this) {
+                        follow = false;
+                    }
                 }
-
-                @Override
-                public boolean follow() {
-                    return follow;
-                }
-
-                @Override
-                public boolean result() {
-                    return result;
-                }
-
-                @Override
-                public boolean async() {
-                    return false;
-                }
-            }).iterator();
-            if (iterator.hasNext()) {
-                result = iterator.next();
             }
-            if (result != NULL_INDEX) {
+
+            @Override
+            public boolean follow() {
+                return follow;
+            }
+        };
+        for (Collection<T> collection : this.allCollections()) {
+            Parallel.For(collection, operation);
+            if (result[0] != NULL_INDEX) {
                 break;
             }
         }
-        return result;
+        return result[0];
+    }
+
+    @NotNull
+    @Override
+    public Long lastIndexOfKey(@Nullable final Long pKey) {
+        final long[] result = new long[1];
+        result[0] = NULL_INDEX;
+        Parallel.Operation<T> operation = new Parallel.Operation<T>() {
+            int index = NULL_INDEX;
+            @Override
+            public void perform(T pParameter) {
+                synchronized (this) {
+                    index++;
+                }
+                boolean equals;
+                if (pKey == null) {
+                    equals = pParameter.getId() == null;
+                } else {
+                    equals = pKey.equals(pParameter.getId());
+                }
+                if (equals) {
+                    synchronized (result) {
+                        result[0] = index;
+                    }
+                }
+            }
+
+            @Override
+            public boolean follow() {
+                return true;
+            }
+        };
+        for (Collection<T> collection : this.allCollections()) {
+            Parallel.For(collection, operation);
+        }
+        return result[0];
     }
 
     @Override
@@ -164,39 +147,32 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
     @Override
     public final boolean contains(@NotNull final T pData) {
-        boolean result = false;
+        final boolean[] result = new boolean[1];
+        result[0] = false;
         for (final LinkedList<LinkedList<T>> lla : values) {
-            Iterator<Boolean> iterator = Parallel.For(lla, new Parallel.Operation<LinkedList<T>, Boolean>() {
+            Parallel.For(lla, new Parallel.Operation<LinkedList<T>>() {
                 boolean follow = true;
-                boolean result = false;
                 @Override
-                public synchronized Boolean perform(LinkedList<T> pParameter) {
-                    result = pParameter.contains(pData);
-                    follow = !result;
-                    return result;
+                public void perform(LinkedList<T> pParameter) {
+                    boolean contains = pParameter.contains(pData);
+                    if (contains) {
+                        synchronized (result) {
+                            result[0] = true;
+                        }
+                        synchronized (this) {
+                            follow = false;
+                        }
+                    }
                 }
 
                 @Override
                 public boolean follow() {
                     return follow;
                 }
-
-                @Override
-                public boolean result() {
-                    return result;
-                }
-
-                @Override
-                public boolean async() {
-                    return true;
-                }
-            }).iterator();
-            if (iterator.hasNext()) {
-                result = iterator.next();
-            }
-            if (result) break;
+            });
+            if (result[0]) break;
         }
-        return result;
+        return result[0];
     }
 
     @Override
@@ -266,9 +242,11 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
             @Override
             public Iterator<Collection<T>> iterator() {
                 return new Iterator<Collection<T>>() {
+
                     private LinkedList<LinkedList<T>>[] values = DataLongListIterator.this.values;
                     private transient volatile long mIndex = NULL_INDEX;
                     private transient volatile long mSize = values[0].size() + values[1].size();
+
                     @Override
                     public boolean hasNext() {
                         return mIndex + 1 < mSize;
@@ -328,7 +306,12 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     @Override
     public final void remove() {
         if (mIndex == NULL_INDEX) throw new IllegalStateException(String.valueOf(NULL_INDEX));
-        this.remove(this.actual());
+        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
+        final int listIndex = (arrayIndex == 1)
+                ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1)*((long) MAX_COLLECTION_INDEX +1))) / ((long) MAX_COLLECTION_INDEX + 1))
+                : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
+        values[arrayIndex].get(listIndex).remove(this.currentCollectionIndex());
+        mIndex--;
     }
 
     @Override
@@ -359,126 +342,101 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Override
-    public final void remove(@NotNull final T pData) {
-        class ParallelResult {
-            long index;
-            Data<Long> data;
-        }
-        long index = NULL_INDEX;
+    public final boolean remove(@NotNull final T pData) {
+        final long[] index = new long[1];
+        index[0] = NULL_INDEX;
+        final boolean[] result = new boolean[1];
+        result[0] = false;
+        Parallel.Operation<T> operation = new Parallel.Operation<T>() {
+            boolean follow = true;
+            @Override
+            public void perform(final T pParameter) {
+                synchronized (index) {
+                    index[0]++;
+                }
+                synchronized (result) {
+                    result[0] = pData.equals(pParameter);
+                }
+                synchronized (this) {
+                    follow = !result[0];
+                }
+            }
+
+            @Override
+            public boolean follow() {
+                return follow;
+            }
+        };
         for (final LinkedList<LinkedList<T>> lla : values) {
             LinkedList<T> list = null;
-            boolean result = false;
-            for (final LinkedList<T> ll : lla) {
-                Data<Long> data = null;
-                Parallel.Operation<T,ParallelResult> operation = new Parallel.Operation<T, ParallelResult>() {
-                    boolean follow = true;
-                    boolean result = false;
-                    int tIndex = NULL_INDEX;
-                    @Override
-                    public synchronized ParallelResult perform(final T pParameter) {
-                        tIndex++;
-                        result = pData.equals(pParameter);
-                        follow = !result;
-                        return new ParallelResult(){{this.index = tIndex;this.data = pParameter;}};
-                    }
+            for (final LinkedList<T> linkedList : lla) {
 
-                    @Override
-                    public boolean follow() {
-                        return follow;
-                    }
+                Parallel.For(linkedList, operation);
 
-                    @Override
-                    public boolean result() {
-                        return result;
-                    }
-
-                    @Override
-                    public boolean async() {
-                        return false;
-                    }
-                };
-                for (ParallelResult parallelResult :
-                        Parallel.For(ll, operation)) {
-                    data = parallelResult.data;
-                    index = parallelResult.index;
-                }
-
-                if (data != null) {
-                    list = ll;
+                if (result[0]) {
+                    list = linkedList;
                     break;
                 }
             }
 
             if (list != null) {
-                result = list.remove(pData);
-                if (result) {
-                    if (index <= mIndex) {
+                result[0] = list.remove(pData);
+                if (result[0]) {
+                    if (index[0] != NULL_INDEX && index[0] <= mIndex) {
                         mIndex--;
                     }
                     mSize--;
                 }
             }
-            if (result) break;
+            if (result[0]) break;
         }
+        return result[0];
     }
 
     @Override
     public final <E extends T> void retainAll(@NotNull DataListIterator<E, Long> pDataListIterator) {
         final DataLongListIterator<T> dlli = new DataLongListIterator<T>();
         for (Collection<E> collection : pDataListIterator.allCollections()) {
-            Parallel.For(collection, new Parallel.Operation<E,Void>() {
+            Parallel.For(collection, new Parallel.Operation<E>() {
 
                 @Override
-                public Void perform(E pParameter) {
-                    synchronized (dlli) {
-                        dlli.add(pParameter);
-                    }
-                    return null;
+                public void perform(E pParameter) {
+                    dlli.add(pParameter);
                 }
 
                 @Override
                 public boolean follow() {
-                    return true;
-                }
-
-                @Override
-                public boolean result() {
-                    return false;
-                }
-
-                //No order preference
-                @Override
-                public boolean async() {
                     return true;
                 }
             });
         }
 
+        final DataLongListIterator<T> dlliDelete = new DataLongListIterator<>();
         for (Collection<T> collection : this.allCollections()) {
-            Parallel.For(collection, new Parallel.Operation<T, Void>() {
+            Parallel.For(collection, new Parallel.Operation<T>() {
                 @Override
-                public Void perform(T pParameter) {
+                public void perform(T pParameter) {
                     if (!dlli.contains(pParameter)) {
-                        synchronized (DataLongListIterator.this) {
-                            DataLongListIterator.this.remove(pParameter);
-                        }
+                        dlliDelete.add(pParameter);
                     }
-                    return null;
                 }
 
                 @Override
                 public boolean follow() {
                     return true;
                 }
-
+            });
+        }
+        for (Collection<T> collection : dlliDelete.allCollections()) {
+            Parallel.For(collection, new Parallel.Operation<T>() {
                 @Override
-                public boolean result() {
-                    return false;
+                public void perform(T pParameter) {
+                    DataLongListIterator.this.remove(pParameter);
                 }
 
                 @Override
-                public boolean async() {
-                    return true;
+                public boolean follow() {
+                    return false;
                 }
             });
         }
@@ -499,10 +457,10 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
     @Override
     public <E extends T> void addAll(@NotNull final Long pIndex, @NotNull DataListIterator<E, Long> pDataListIterator) {
-        Parallel.Operation<E,Void> operation = new Parallel.Operation<E, Void>() {
+        Parallel.Operation<E> operation = new Parallel.Operation<E>() {
             long index = pIndex;
             @Override
-            public Void perform(E pParameter) {
+            public void perform(E pParameter) {
                 final int arrayIndex = (int) (index / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX));
                 final int listIndex = (arrayIndex == 1)
                         ? BigDecimal.valueOf(((index / ((long) MAX_COLLECTION_INDEX + 1)) + 1))
@@ -516,71 +474,16 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 synchronized (this) {
                     index++;
                 }
-                return null;
             }
 
             @Override
             public boolean follow() {
                 return true;
             }
-
-            @Override
-            public boolean result() {
-                return false;
-            }
-
-            @Override
-            public boolean async() {
-                return false;
-            }
         };
         for (Collection<E> collection : pDataListIterator.allCollections()) {
             Parallel.For(collection, operation);
         }
-    }
-
-    @Override
-    public final boolean equals(@NotNull final DataListIterator<T, Long> pDataListIterator) {
-        //Save time
-        if (this.equals((Object)pDataListIterator)) return true;
-        boolean result;
-        if ((result = this.size().equals(pDataListIterator.size())) && this.size() != 0) {
-            final Iterator<Collection<T>> collections = pDataListIterator.allCollections().iterator();
-            for (Collection<T> collection : this.allCollections()) {
-                final Iterator<T> iterator = collections.next().iterator();
-                Iterator<Boolean> i = Parallel.For(collection, new Parallel.Operation<T, Boolean>() {
-                    boolean follow = true;
-                    boolean result = false;
-                    @Override
-                    public synchronized Boolean perform(T pParameter) {
-                        boolean result = pParameter.equals(iterator.next());
-                        this.result = !result;
-                        this.follow = result;
-                        return result;
-                    }
-
-                    @Override
-                    public boolean follow() {
-                        return follow;
-                    }
-
-                    @Override
-                    public boolean result() {
-                        return result;
-                    }
-
-                    @Override
-                    public boolean async() {
-                        return false;
-                    }
-                }).iterator();
-                if (i.hasNext()) {
-                    result = i.next();
-                }
-                if (!result) break;
-            }
-        }
-        return result;
     }
 
     @Override
@@ -623,30 +526,16 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
         if (pIndex <= this.mIndex) this.mIndex++;
     }
 
-/*    @Override
-    @Nullable
-    public final T remove(@NotNull Long pIndex) {
-        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
-        final int listIndex = (arrayIndex == 1)
-                ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1)*((long) MAX_COLLECTION_INDEX +1))) / ((long) MAX_COLLECTION_INDEX + 1))
-                : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
-        if (values[arrayIndex].get(listIndex) == null) return null;
-        if (pIndex <= mIndex) {
-            mIndex--;
-        }
-        return values[arrayIndex].get(listIndex).remove(collectionIndexOf(pIndex));
-    }*/
-
     @Override
     @NotNull
     public final Long indexOf(@NotNull final T pData) {
         final long[] result = new long[1];
         result[0] = NULL_INDEX;
-        Parallel.Operation<T,Void> operation = new Parallel.Operation<T, Void>() {
+        Parallel.Operation<T> operation = new Parallel.Operation<T>() {
             long index = NULL_INDEX;
             boolean follow = true;
             @Override
-            public Void perform(T pParameter) {
+            public void perform(T pParameter) {
                 synchronized (this) {
                     index++;
                 }
@@ -658,22 +547,11 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                         follow = false;
                     }
                 }
-                return null;
             }
 
             @Override
             public boolean follow() {
                 return follow;
-            }
-
-            @Override
-            public boolean result() {
-                return false;
-            }
-
-            @Override
-            public boolean async() {
-                return false;
             }
         };
         for (Collection<T> collection : this.allCollections()) {
@@ -687,10 +565,10 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     public final Long lastIndexOf(@NotNull final T pData) {
         final long[] result = new long[1];
         result[0] = NULL_INDEX;
-        Parallel.Operation<T,Void> operation = new Parallel.Operation<T, Void>() {
+        Parallel.Operation<T> operation = new Parallel.Operation<T>() {
             long index = NULL_INDEX;
             @Override
-            public Void perform(T pParameter) {
+            public void perform(T pParameter) {
                 synchronized (this) {
                     index++;
                 }
@@ -699,21 +577,10 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                         result[0] = index;
                     }
                 }
-                return null;
             }
 
             @Override
             public boolean follow() {
-                return false;
-            }
-
-            @Override
-            public boolean result() {
-                return false;
-            }
-
-            @Override
-            public boolean async() {
                 return false;
             }
         };
@@ -733,10 +600,10 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     @Override
     public final DataListIterator<T, Long> listIterator(@NotNull final Long pIndex) {
         final DataListIterator<T, Long> result = new DataLongListIterator<>();
-        Parallel.Operation<T,Void> operation = new Parallel.Operation<T, Void>() {
+        Parallel.Operation<T> operation = new Parallel.Operation<T>() {
             long index = NULL_INDEX;
             @Override
-            public Void perform(T pParameter) {
+            public void perform(T pParameter) {
                 synchronized (this) {
                     index++;
                 }
@@ -745,22 +612,11 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                         result.add(pParameter);
                     }
                 }
-                return null;
             }
 
             @Override
             public boolean follow() {
                 return true;
-            }
-
-            @Override
-            public boolean result() {
-                return false;
-            }
-
-            @Override
-            public boolean async() {
-                return false;
             }
         };
         for (Collection<T> collection : this.allCollections()) {
@@ -773,11 +629,11 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     @Override
     public final DataListIterator<T, Long> subDataListIterator(@NotNull final Long pIndex1, @NotNull final Long pIndex2) {
         final DataListIterator<T, Long> result = new DataLongListIterator<>();
-        Parallel.Operation<T,Void> operation = new Parallel.Operation<T, Void>() {
+        Parallel.Operation<T> operation = new Parallel.Operation<T>() {
             long index = NULL_INDEX;
             boolean follow = true;
             @Override
-            public Void perform(T pParameter) {
+            public void perform(T pParameter) {
                 synchronized (this) {
                     index++;
                 }
@@ -790,22 +646,11 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                         follow = false;
                     }
                 }
-                return null;
             }
 
             @Override
             public boolean follow() {
                 return follow;
-            }
-
-            @Override
-            public boolean result() {
-                return false;
-            }
-
-            @Override
-            public boolean async() {
-                return false;
             }
         };
         for (Collection<T> collection : this.allCollections()) {

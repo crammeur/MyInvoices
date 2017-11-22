@@ -43,6 +43,9 @@ public interface DataCollectionIterator<T extends Data<K>, K extends Serializabl
     @NotNull
     K indexOfKey(@Nullable K pKey);
 
+    @NotNull
+    K lastIndexOfKey(@Nullable K pKey);
+
     /**
      * Return mIndex for current data in currentCollection method
      *
@@ -86,7 +89,7 @@ public interface DataCollectionIterator<T extends Data<K>, K extends Serializabl
 
     <E extends T> boolean containsAll(@NotNull DataListIterator<E, K> pDataListIterator);
 
-    void remove(@NotNull T pData);
+    boolean remove(@NotNull T pData);
 
     <E extends T> void removeAll(@NotNull DataListIterator<E, K> pDataListIterator);
 
