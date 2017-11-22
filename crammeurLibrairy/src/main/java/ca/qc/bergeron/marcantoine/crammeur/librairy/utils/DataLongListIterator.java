@@ -552,15 +552,17 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
             @Override
             public void perform(T pParameter) {
-                synchronized (this) {
-                    index++;
-                }
                 if (pData.equals(pParameter)) {
-                    synchronized (DataLongListIterator.this) {
+                    synchronized (this) {
+                        index++;
+                        follow = false;
+                    }
+                    synchronized (result) {
                         result[0] = index;
                     }
+                } else {
                     synchronized (this) {
-                        follow = false;
+                        index++;
                     }
                 }
             }

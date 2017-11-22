@@ -97,8 +97,8 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     @Override
-    public <E extends T> void retainAll(@NotNull DataListIterator<E, Integer> pDataListIterator) {
-
+    public <E extends T> boolean retainAll(@NotNull DataListIterator<E, Integer> pDataListIterator) {
+        return false;
     }
 
     @Override
