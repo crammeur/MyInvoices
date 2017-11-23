@@ -49,7 +49,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Override
-    protected final void finalize() throws Throwable {
+    protected void finalize() throws Throwable {
         super.finalize();
         values[0] = null;
         values[1] = null;
@@ -110,7 +110,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
     @NotNull
     @Override
-    public Long lastIndexOfKey(@Nullable final Long pKey) {
+    public final Long lastIndexOfKey(@Nullable final Long pKey) {
         final long[] result = new long[1];
         result[0] = NULL_INDEX;
         Parallel.Operation<T> operation = new Parallel.Operation<T>() {
@@ -472,7 +472,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Override
-    public <E extends T> void addAll(@NotNull final Long pIndex, @NotNull DataListIterator<E, Long> pDataListIterator) {
+    public final <E extends T> void addAll(@NotNull final Long pIndex, @NotNull DataListIterator<E, Long> pDataListIterator) {
         Parallel.Operation<E> operation = new Parallel.Operation<E>() {
             long index = pIndex;
 
