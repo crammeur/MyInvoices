@@ -1,6 +1,5 @@
 package ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i;
 
-import org.intellij.lang.annotations.Flow;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -74,10 +73,6 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterable<
     Collection<E> collectionOf(@NotNull S pIndex);
 
     void add(@Nullable E pEntity);
-
-    boolean addToCollection(@Nullable E pData);
-
-    <E2 extends E> boolean addAllToCollection(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) CollectionIterator<E2, S> pDataCollectionIterator);
 
     int nextIndex();
 

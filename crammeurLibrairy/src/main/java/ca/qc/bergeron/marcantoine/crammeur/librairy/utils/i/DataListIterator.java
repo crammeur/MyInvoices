@@ -1,5 +1,6 @@
 package ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i;
 
+import org.intellij.lang.annotations.Flow;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -18,6 +19,10 @@ public interface DataListIterator<T extends Data<K>, K extends Serializable> ext
     T get(@NotNull K pIndex);
 
     T set(@NotNull K pIndex, @Nullable T pData);
+
+    boolean addToList(@Nullable T pData);
+
+    <E extends T> boolean addAllToList(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) CollectionIterator<E, K> pDataCollectionIterator);
 
     void add(@NotNull K pIndex, @Nullable T pData);
 

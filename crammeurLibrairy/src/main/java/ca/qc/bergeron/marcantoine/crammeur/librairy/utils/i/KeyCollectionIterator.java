@@ -9,17 +9,13 @@ import java.io.Serializable;
  * Created by Marc-Antoine on 2017-09-18.
  */
 
-public interface KeyCollectionIterator<K extends Serializable> extends Iterable<K>, CollectionIterator<K,K> {
-
-    <E extends K> boolean containsAll(@NotNull KeyCollectionIterator<E> pKeyCollectionIterator);
-
-    boolean equals(@NotNull KeyCollectionIterator<K> pKeyCollectionIterator);
+public interface KeyCollectionIterator<K extends Serializable, S extends Serializable> extends Iterable<K>, CollectionIterator<K,S> {
 
     boolean remove(@Nullable K pKey);
 
-    <E extends K> boolean removeAll(@NotNull KeyCollectionIterator<E> pKeyCollectionIterator);
+    <E extends K> boolean removeAll(@NotNull CollectionIterator<E,S> pKeyCollectionIterator);
 
-    <E extends K> boolean retainAll(@NotNull KeyCollectionIterator<E> pKeyCollectionIterator);
+    <E extends K> boolean retainAll(@NotNull CollectionIterator<E,S> pKeyCollectionIterator);
 
     void clear();
 }

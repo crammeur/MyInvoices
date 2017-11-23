@@ -1,6 +1,5 @@
 package ca.qc.bergeron.marcantoine.crammeur.librairy.utils;
 
-import org.intellij.lang.annotations.Flow;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -65,33 +64,6 @@ abstract class CollectionIterator<E, S extends Serializable> implements ca.qc.be
                 public void perform(E2 pParameter) {
                     synchronized (result) {
                         result[0] = CollectionIterator.this.contains(pParameter);
-                    }
-                    synchronized (this) {
-                        follow = result[0];
-                    }
-                }
-
-                @Override
-                public boolean follow() {
-                    return follow;
-                }
-            });
-        }
-        return result[0];
-    }
-
-    @Override
-    public final <E2 extends E> boolean addAllToCollection(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E2, S> pCollectionIterator) {
-        final boolean[] result = new boolean[1];
-        for (Collection<E2> collection : pCollectionIterator.allCollections()) {
-            Parallel.For(collection, new Parallel.Operation<E2>() {
-                boolean follow = true;
-                @Override
-                public void perform(E2 pParameter) {
-                    synchronized (CollectionIterator.this) {
-                        synchronized (result) {
-                            result[0] = CollectionIterator.this.addToCollection(pParameter);
-                        }
                     }
                     synchronized (this) {
                         follow = result[0];
