@@ -15,7 +15,7 @@ public interface DataSortedMap<K extends Number, V extends Data<K>> extends Data
 
     DataSortedMap<K, V> headMap(K toKey);
 
-    KeySet<K> keySet();
+    KeySetIterator<K> keySet();
 
     K lastKey();
 

@@ -33,7 +33,7 @@ public interface DataMap<K extends Serializable, V extends Data<K>> {
 
     void clear();
 
-    KeySet<K> keySet();
+    KeySetIterator<K> keySet();
 
     DataListIterator<V, K> values();
 
