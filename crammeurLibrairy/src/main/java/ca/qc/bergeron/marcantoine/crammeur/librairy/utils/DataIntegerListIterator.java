@@ -42,24 +42,41 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     @Override
-    public T set(@NotNull Integer pIndex, @NotNull T pData) {
+    public T set(@NotNull Integer pIndex, @Nullable T pData) {
         return null;
     }
 
     @Override
-    public void add(@NotNull Integer pIndex, @NotNull T pData) {
+    public void add(@NotNull Integer pIndex, @Nullable T pData) {
+
+    }
+
+    @Override
+    public <E extends T> void addAll(@NotNull Integer pIndex, @NotNull DataListIterator<E, Integer> pDataListIterator) {
 
     }
 
     @NotNull
     @Override
-    public Integer indexOf(@NotNull T pData) {
+    public Integer indexOf(@Nullable T pData) {
         return null;
     }
 
     @NotNull
     @Override
-    public Integer lastIndexOf(@NotNull T pData) {
+    public Integer lastIndexOf(@Nullable T pData) {
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public Integer indexOfKey(@Nullable Integer pKey) {
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public Integer lastIndexOfKey(@Nullable Integer pKey) {
         return null;
     }
 
@@ -82,17 +99,54 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     @Override
-    public <E extends T> void addAll(@NotNull Integer pIndex, @NotNull DataListIterator<E, Integer> pDataListIterator) {
+    public void add(@Nullable T pData) {
 
     }
 
     @Override
-    public boolean contains(@NotNull T pData) {
+    public boolean hasNext() {
         return false;
     }
 
+    @Nullable
     @Override
-    public boolean remove(@NotNull T pData) {
+    public T next() {
+        return null;
+    }
+
+    @Override
+    public boolean hasPrevious() {
+        return false;
+    }
+
+    @Nullable
+    @Override
+    public T previous() {
+        return null;
+    }
+
+    @Override
+    public int nextIndex() {
+        return 0;
+    }
+
+    @Override
+    public int previousIndex() {
+        return 0;
+    }
+
+    @Override
+    public void remove() {
+
+    }
+
+    @Override
+    public void set(@Nullable T pData) {
+
+    }
+
+    @Override
+    public boolean remove(@Nullable T pData) {
         return false;
     }
 
@@ -103,7 +157,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
 
     @Override
     public void clear() {
-        values.clear();
+
     }
 
     @NotNull
@@ -127,85 +181,27 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     @NotNull
     @Override
     public Integer size() {
-        return values.size();
+        return null;
     }
 
     @Override
     public boolean isEmpty() {
-        return values.isEmpty();
-    }
-
-    @NotNull
-    @Override
-    public Integer indexOfKey(@Nullable Integer pKey) {
-        return null;
-    }
-
-    @NotNull
-    @Override
-    public Integer lastIndexOfKey(@Nullable Integer pKey) {
-        return null;
+        return false;
     }
 
     @Override
     public int currentCollectionIndex() {
-        return mIndex;
+        return 0;
     }
 
-    @Deprecated
     @Override
     public int collectionIndexOf(@NotNull Integer pIndex) {
-        return pIndex;
+        return 0;
     }
 
     @NotNull
     @Override
     public Iterator<T> iterator() {
         return null;
-    }
-
-    @Override
-    public boolean hasNext() {
-        return false;
-    }
-
-    @Override
-    public T next() {
-        return null;
-    }
-
-    @Override
-    public boolean hasPrevious() {
-        return false;
-    }
-
-    @Override
-    public T previous() {
-        return null;
-    }
-
-    @Override
-    public int nextIndex() {
-        return 0;
-    }
-
-    @Override
-    public int previousIndex() {
-        return 0;
-    }
-
-    @Override
-    public void remove() {
-        values.remove(mIndex);
-    }
-
-    @Override
-    public void set(T t) {
-
-    }
-
-    @Override
-    public void add(T t) {
-
     }
 }

@@ -78,15 +78,17 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
             @Override
             public void perform(T pParameter) {
-                synchronized (this) {
-                    index++;
-                }
-                if ((pKey == null && pParameter.getId() == null) || (pKey != null && pKey.equals(pParameter.getId()))) {
+                if (pParameter != null && ((pKey == null && pParameter.getId() == null) || (pKey != null && pKey.equals(pParameter.getId())))) {
+                    synchronized (this) {
+                        index++;
+                        follow = false;
+                    }
                     synchronized (result) {
                         result[0] = index;
                     }
+                } else {
                     synchronized (this) {
-                        follow = false;
+                        index++;
                     }
                 }
             }
@@ -118,15 +120,17 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 synchronized (this) {
                     index++;
                 }
-                boolean equals;
-                if (pKey == null) {
-                    equals = pParameter.getId() == null;
-                } else {
-                    equals = pKey.equals(pParameter.getId());
-                }
-                if (equals) {
-                    synchronized (result) {
-                        result[0] = index;
+                if (pParameter != null) {
+                    boolean equals;
+                    if (pKey == null) {
+                        equals = pParameter.getId() == null;
+                    } else {
+                        equals = pKey.equals(pParameter.getId());
+                    }
+                    if (equals) {
+                        synchronized (result) {
+                            result[0] = index;
+                        }
                     }
                 }
             }
@@ -148,43 +152,12 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Override
-    public final boolean contains(@NotNull final T pData) {
-        final boolean[] result = new boolean[1];
-        result[0] = false;
-        for (final LinkedList<LinkedList<T>> lla : values) {
-            Parallel.For(lla, new Parallel.Operation<LinkedList<T>>() {
-                boolean follow = true;
-
-                @Override
-                public void perform(LinkedList<T> pParameter) {
-                    boolean contains = pParameter.contains(pData);
-                    if (contains) {
-                        synchronized (result) {
-                            result[0] = true;
-                        }
-                        synchronized (this) {
-                            follow = false;
-                        }
-                    }
-                }
-
-                @Override
-                public boolean follow() {
-                    return follow;
-                }
-            });
-            if (result[0]) break;
-        }
-        return result[0];
-    }
-
-    @Override
     public final boolean hasNext() {
         return mIndex + 1 < mSize;
     }
 
+    @Nullable
     @Override
-    @NotNull
     public final T next() {
         if (hasNext()) {
             mIndex++;
@@ -198,8 +171,8 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
         return (mIndex != NULL_INDEX) && mIndex - 1 != NULL_INDEX;
     }
 
+    @Nullable
     @Override
-    @NotNull
     public final T previous() {
         if (hasPrevious()) {
             mIndex--;
@@ -209,7 +182,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
     }
 
-    @NotNull
+    @Nullable
     public final T actual() {
         if (mIndex != -1 && mIndex < Long.MAX_VALUE) {
             final int arrayIndex = (int) (mIndex / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX));
@@ -318,7 +291,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Override
-    public final void set(@NotNull T t) {
+    public final void set(@Nullable T t) {
         if (mIndex == NULL_INDEX) throw new IllegalStateException(String.valueOf(NULL_INDEX));
         final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
@@ -327,13 +300,8 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
         values[arrayIndex].get(listIndex).set(this.currentCollectionIndex(), t);
     }
 
-    /**
-     * Add data to list iterator
-     *
-     * @param pData Data
-     */
     @Override
-    public final void add(@NotNull T pData) {
+    public final void add(@Nullable T pData) {
         final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
                 ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))
@@ -346,11 +314,11 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Override
-    public final boolean remove(@NotNull final T pData) {
+    public final boolean remove(@Nullable final T pData) {
         final long[] index = new long[1];
         index[0] = NULL_INDEX;
         final boolean[] result = new boolean[1];
-        result[0] = false;
+
         Parallel.Operation<T> operation = new Parallel.Operation<T>() {
             boolean follow = true;
 
@@ -360,7 +328,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                     index[0]++;
                 }
                 synchronized (result) {
-                    result[0] = pData.equals(pParameter);
+                    result[0] = (pData == pParameter || (pData != null && pData.equals(pParameter)));
                 }
                 synchronized (this) {
                     follow = !result[0];
@@ -372,6 +340,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 return follow;
             }
         };
+
         for (final LinkedList<LinkedList<T>> lla : values) {
             LinkedList<T> list = null;
             for (final LinkedList<T> linkedList : lla) {
@@ -395,6 +364,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
             }
             if (result[0]) break;
         }
+
         return result[0];
     }
 
@@ -476,12 +446,9 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
             @Override
             public void perform(E pParameter) {
-                final int arrayIndex = (int) (index / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX));
+                final int arrayIndex = (int) (index / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
                 final int listIndex = (arrayIndex == 1)
-                        ? BigDecimal.valueOf(((index / ((long) MAX_COLLECTION_INDEX + 1)) + 1))
-                        .divide(BigDecimal.valueOf(2), BigDecimal.ROUND_HALF_UP)
-                        .add(BigDecimal.ONE.negate())
-                        .multiply(BigDecimal.valueOf(2)).intValue()
+                        ? (int) ((index % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))
                         : (int) (index / ((long) MAX_COLLECTION_INDEX + 1));
                 synchronized (values) {
                     values[arrayIndex].get(listIndex).add(collectionIndexOf(index), pParameter);
@@ -504,38 +471,38 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     @Override
     @Nullable
     public final T get(@NotNull Long pIndex) {
-        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
+        if (pIndex > mSize - 1) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
+        final int arrayIndex = (int) (pIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
-                ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))
-                : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
-        if (values[arrayIndex].get(listIndex) == null) return null;
+                ? (int) ((pIndex % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))
+                : (int) (pIndex / ((long) MAX_COLLECTION_INDEX + 1));
+        //if (values[arrayIndex].get(listIndex) == null) return null;
         return values[arrayIndex].get(listIndex).get(collectionIndexOf(pIndex));
     }
 
     @Override
     @Nullable
-    public final T set(@NotNull Long pIndex, @NotNull T pData) {
-        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
+    public final T set(@NotNull Long pIndex, @Nullable T pData) {
+        if (pIndex > mSize - 1) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
+        final int arrayIndex = (int) (pIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
-                ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))
-                : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
-        if (values[arrayIndex].get(listIndex) == null) return null;
+                ? (int) ((pIndex % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))
+                : (int) (pIndex / ((long) MAX_COLLECTION_INDEX + 1));
+        //if (values[arrayIndex].get(listIndex) == null) return null;
         return values[arrayIndex].get(listIndex).set(collectionIndexOf(pIndex), pData);
     }
 
     @Override
-    public final void add(@NotNull Long pIndex, @NotNull T pData) {
-        final long index = pIndex;
-        final T data = pData;
-        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
+    public final void add(@NotNull final Long pIndex, @Nullable final T pData) {
+        final int arrayIndex = (int) (pIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
-                ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))
-                : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
+                ? (int) ((pIndex % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))
+                : (int) (pIndex / ((long) MAX_COLLECTION_INDEX + 1));
         if (values[arrayIndex].get(listIndex) != null) {
-            values[arrayIndex].get(listIndex).add(collectionIndexOf(index), data);
+            values[arrayIndex].get(listIndex).add(collectionIndexOf(pIndex), pData);
         } else {
             values[arrayIndex].add(listIndex, new LinkedList<T>() {{
-                add(collectionIndexOf(index), data);
+                add(collectionIndexOf(pIndex), pData);
             }});
         }
         if (pIndex <= this.mIndex) this.mIndex++;
@@ -543,7 +510,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
     @Override
     @NotNull
-    public final Long indexOf(@NotNull final T pData) {
+    public final Long indexOf(@Nullable final T pData) {
         final long[] result = new long[1];
         result[0] = NULL_INDEX;
         Parallel.Operation<T> operation = new Parallel.Operation<T>() {
@@ -552,7 +519,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
             @Override
             public void perform(T pParameter) {
-                if (pData.equals(pParameter)) {
+                if ((pData == pParameter) || (pData != null && pData.equals(pParameter))) {
                     synchronized (this) {
                         index++;
                         follow = false;
@@ -580,7 +547,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
     @Override
     @NotNull
-    public final Long lastIndexOf(@NotNull final T pData) {
+    public final Long lastIndexOf(@Nullable final T pData) {
         final long[] result = new long[1];
         result[0] = NULL_INDEX;
         Parallel.Operation<T> operation = new Parallel.Operation<T>() {
@@ -591,8 +558,8 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 synchronized (this) {
                     index++;
                 }
-                if (pData.equals(pParameter)) {
-                    synchronized (DataLongListIterator.this) {
+                if ((pData == pParameter) || (pData != null && pData.equals(pParameter))) {
+                    synchronized (result) {
                         result[0] = index;
                     }
                 }
@@ -628,7 +595,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                     index++;
                 }
                 if (index >= pIndex) {
-                    synchronized (DataLongListIterator.this) {
+                    synchronized (result) {
                         result.add(pParameter);
                     }
                 }
@@ -659,7 +626,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                     index++;
                 }
                 if (index >= pIndex1 && index < pIndex2) {
-                    synchronized (DataLongListIterator.this) {
+                    synchronized (result) {
                         result.add(pParameter);
                     }
                 } else if (index >= pIndex2) {

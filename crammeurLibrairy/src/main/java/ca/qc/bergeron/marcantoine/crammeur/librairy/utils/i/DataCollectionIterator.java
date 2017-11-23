@@ -2,6 +2,7 @@ package ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i;
 
 import org.intellij.lang.annotations.Flow;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -74,15 +75,29 @@ public interface DataCollectionIterator<T extends Data<K>, K extends Serializabl
     @NotNull
     Collection<T> collectionOf(@NotNull K pIndex);
 
-    <E extends T> void addAll(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) DataListIterator<E, K> pDataListIterator);
+    @Override
+    void add(@Nullable T pData);
 
-    <E extends T> void addAll(@NotNull K pIndex, @NotNull DataListIterator<E, K> pDataListIterator);
+    <E extends T> void addAll(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) DataCollectionIterator<E, K> pDataCollectionIterator);
 
-    boolean contains(@NotNull T pData);
+    @Nullable
+    @Override
+    T next();
+
+    @Nullable
+    @Override
+    T previous();
+
+    boolean contains(@Nullable T pData);
 
     <E extends T> boolean containsAll(@NotNull DataListIterator<E, K> pDataListIterator);
 
-    boolean remove(@NotNull T pData);
+    boolean equals(@NotNull DataCollectionIterator<T, K> pDataCollectionIterator);
+
+    @Override
+    void set(@Nullable T pData);
+
+    boolean remove(@Nullable T pData);
 
     <E extends T> boolean removeAll(@NotNull DataListIterator<E, K> pDataListIterator);
 

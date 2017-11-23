@@ -15,19 +15,19 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
 
 public interface DataListIterator<T extends Data<K>, K extends Serializable> extends DataCollectionIterator<T, K> {
 
-    boolean equals(@NotNull DataListIterator<T, K> pDataListIterator);
-
     T get(@NotNull K pIndex);
 
-    T set(@NotNull K pIndex, @NotNull T pData);
+    T set(@NotNull K pIndex, @Nullable T pData);
 
-    void add(@NotNull K pIndex, @NotNull T pData);
+    void add(@NotNull K pIndex, @Nullable T pData);
+
+    <E extends T> void addAll(@NotNull K pIndex, @NotNull DataListIterator<E, K> pDataListIterator);
 
     @NotNull
-    K indexOf(@NotNull T pData);
+    K indexOf(@Nullable T pData);
 
     @NotNull
-    K lastIndexOf(@NotNull T pData);
+    K lastIndexOf(@Nullable T pData);
 
     @NotNull
     K indexOfKey(@Nullable K pKey);

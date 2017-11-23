@@ -2,12 +2,14 @@ package ca.qc.bergeron.marcantoine.crammeur.librairy.utils;
 
 import org.intellij.lang.annotations.Flow;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataCollectionIterator;
 
 /**
  * Created by Marc-Antoine on 2017-09-22.
@@ -23,6 +25,36 @@ abstract class DataListIterator<T extends Data<K>, K extends Serializable> imple
     @Override
     public final int collectionSizeOf(@NotNull K pKey) {
         return this.collectionOf(pKey).size();
+    }
+
+    @Override
+    public final boolean contains(@Nullable final T pData) {
+        final boolean[] result = new boolean[1];
+
+        for (Collection<T> collection : this.allCollections()) {
+            Parallel.For(collection, new Parallel.Operation<T>() {
+                boolean follow = true;
+
+                @Override
+                public void perform(T pParameter) {
+                    if ((pData == null && pParameter == null) || (pData != null && pData.equals(pParameter))) {
+                        synchronized (result) {
+                            result[0] = true;
+                        }
+                        synchronized (this) {
+                            follow = false;
+                        }
+                    }
+                }
+
+                @Override
+                public boolean follow() {
+                    return follow;
+                }
+            });
+        }
+
+        return result[0];
     }
 
     @Override
@@ -52,8 +84,8 @@ abstract class DataListIterator<T extends Data<K>, K extends Serializable> imple
     }
 
     @Override
-    public final <E extends T> void addAll(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator<E, K> pDataListIterator) {
-        for (Collection<E> collection : pDataListIterator.allCollections()) {
+    public final <E extends T> void addAll(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) DataCollectionIterator<E, K> pDataCollectionIterator) {
+        for (Collection<E> collection : pDataCollectionIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
                 @Override
                 public void perform(E pParameter) {
@@ -96,12 +128,12 @@ abstract class DataListIterator<T extends Data<K>, K extends Serializable> imple
     }
 
     @Override
-    public final boolean equals(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator<T, K> pDataListIterator) {
+    public final boolean equals(@NotNull DataCollectionIterator<T, K> pDataCollectionIterator) {
         //Save time
-        if (this.equals((Object)pDataListIterator)) return true;
+        if (this.equals((Object) pDataCollectionIterator)) return true;
         final boolean[] result = new boolean[1];
-        if ((result[0] = this.size().equals(pDataListIterator.size())) && !this.isEmpty()) {
-            final Iterator<Collection<T>> collections = pDataListIterator.allCollections().iterator();
+        if ((result[0] = this.size().equals(pDataCollectionIterator.size())) && !this.isEmpty()) {
+            final Iterator<Collection<T>> collections = pDataCollectionIterator.allCollections().iterator();
             for (Collection<T> collection : this.allCollections()) {
                 final Iterator<T> iterator = collections.next().iterator();
                 Parallel.For(collection, new Parallel.Operation<T>() {
