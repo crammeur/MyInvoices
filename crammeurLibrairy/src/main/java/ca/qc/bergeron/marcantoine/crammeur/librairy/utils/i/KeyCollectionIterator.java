@@ -11,7 +11,7 @@ import java.util.ListIterator;
  * Created by Marc-Antoine on 2017-09-18.
  */
 
-public interface KeyCollection<K extends Serializable> extends Iterable<K>, ListIterator<K> {
+public interface KeyCollectionIterator<K extends Serializable> extends Iterable<K>, ListIterator<K> {
     K size();
 
     boolean isEmpty();

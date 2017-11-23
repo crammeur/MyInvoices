@@ -41,7 +41,7 @@ public class UtilsTests {
 
     @Test
     public void testDataLongList() throws InterruptedException {
-        final long count = 3500000;
+        final long count = 3500000*2;
         final DataListIterator<Data<Long>, Long> dl = new DataLongListIterator<Data<Long>>();
         final DataListIterator<Data<Long>, Long> dl2 = new DataLongListIterator<>();
         Assert.assertTrue(dl.equals(dl2));

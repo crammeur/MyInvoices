@@ -87,7 +87,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
 
     @NotNull
     @Override
-    public Integer indexOfKey(@Nullable final Integer pKey) {
+    public final Integer indexOfKey(@Nullable final Integer pKey) {
         final int[] result = new int[1];
         result[0] = NULL_INDEX;
         Parallel.Operation<T> operation = new Parallel.Operation<T>() {
@@ -127,7 +127,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
 
     @NotNull
     @Override
-    public Integer lastIndexOfKey(@Nullable final Integer pKey) {
+    public final Integer lastIndexOfKey(@Nullable final Integer pKey) {
         final int[] result = new int[1];
         result[0] = NULL_INDEX;
         Parallel.Operation<T> operation = new Parallel.Operation<T>() {
