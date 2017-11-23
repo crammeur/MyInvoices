@@ -9,7 +9,7 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
  */
 
 public interface DataSortedMap<K extends Number, V extends Data<K>> extends DataMap<K, V> {
-    Comparator<? super K> comparator();
+    Comparator<? extends K> comparator();
 
     K firstKey();
 

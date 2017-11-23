@@ -9,7 +9,7 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
  */
 
 public interface DataSortedSetIterator<T extends Data<K>, K extends Number> extends DataSetIterator<T, K> {
-    Comparator<? super T> comparator();
+    Comparator<? extends T> comparator();
 
     T first();
 

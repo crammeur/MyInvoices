@@ -7,5 +7,5 @@ import java.io.Serializable;
  */
 
 public interface KeySetIterator<K extends Serializable> extends KeyCollectionIterator<K> {
-    boolean equals(KeySetIterator<K> o);
+    boolean equals(KeySetIterator<K> pKeySetIterator);
 }

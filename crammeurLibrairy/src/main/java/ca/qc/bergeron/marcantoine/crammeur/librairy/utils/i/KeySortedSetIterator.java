@@ -8,7 +8,7 @@ import java.util.Comparator;
  */
 
 public interface KeySortedSetIterator<K extends Serializable> extends KeySetIterator<K> {
-    Comparator<? super K> comparator();
+    Comparator<? extends K> comparator();
 
     K first();
 
