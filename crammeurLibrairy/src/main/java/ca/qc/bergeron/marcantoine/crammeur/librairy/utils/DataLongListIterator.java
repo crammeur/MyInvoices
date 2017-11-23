@@ -74,7 +74,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
         result[0] = NULL_INDEX;
         Parallel.Operation<T> operation = new Parallel.Operation<T>() {
             boolean follow = true;
-            int index = NULL_INDEX;
+            long index = NULL_INDEX;
 
             @Override
             public void perform(T pParameter) {
@@ -113,7 +113,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
         final long[] result = new long[1];
         result[0] = NULL_INDEX;
         Parallel.Operation<T> operation = new Parallel.Operation<T>() {
-            int index = NULL_INDEX;
+            long index = NULL_INDEX;
 
             @Override
             public void perform(T pParameter) {
@@ -239,7 +239,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
                     @Override
                     public void remove() {
-                        if (mIndex == NULL_INDEX) throw new IllegalStateException(String.valueOf(mIndex));
+                        if (mIndex == NULL_INDEX) throw new IllegalStateException(String.valueOf(NULL_INDEX));
                         if (mIndex < Integer.MAX_VALUE) {
                             values[0].remove((int) mIndex);
                         } else {
@@ -329,10 +329,16 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
         if (values[arrayIndex].isEmpty() || (listIndex > 0 && values[arrayIndex].get(listIndex - 1).size() == Integer.MAX_VALUE)) {
             values[arrayIndex].add(new LinkedList<T>());
         }
+        boolean exception = false;
         try {
             return values[arrayIndex].get(values[arrayIndex].size() - 1).add(pData);
+        } catch (Throwable t) {
+            t.printStackTrace();
+            exception = true;
+            throw t;
         } finally {
-            mSize++;
+            if (!exception)
+                mSize++;
         }
 
     }
@@ -395,13 +401,14 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     @Override
     public final <E extends T> boolean retainAll(@NotNull DataListIterator<E, Long> pDataListIterator) {
         final boolean[] result = new boolean[1];
+        result[0] = true;
         final DataLongListIterator<T> retain = new DataLongListIterator<T>();
         for (Collection<E> collection : pDataListIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
 
                 @Override
                 public void perform(E pParameter) {
-                    retain.add(pParameter);
+                    retain.addAtEnd(pParameter);
                 }
 
                 @Override
@@ -417,7 +424,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 @Override
                 public void perform(T pParameter) {
                     if (!retain.contains(pParameter)) {
-                        delete.add(pParameter);
+                        delete.addAtEnd(pParameter);
                     }
                 }
 
@@ -620,7 +627,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 }
                 if (index >= pIndex) {
                     synchronized (result) {
-                        result.add(pParameter);
+                        result.addAtEnd(pParameter);
                     }
                 }
             }
@@ -651,7 +658,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 }
                 if (index >= pIndex1 && index < pIndex2) {
                     synchronized (result) {
-                        result.add(pParameter);
+                        result.addAtEnd(pParameter);
                     }
                 } else if (index >= pIndex2) {
                     synchronized (this) {
