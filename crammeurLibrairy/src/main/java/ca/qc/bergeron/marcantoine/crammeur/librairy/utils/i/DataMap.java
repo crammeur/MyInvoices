@@ -143,6 +143,6 @@ public interface DataMap<K extends Serializable, V extends Data<K>> {
     }
 
     interface EntrySetIterator<E extends Entry<K, T>, T extends Data<K>, K extends Serializable> extends EntryCollectionIterator<E, T, K> {
-        boolean equals(@NotNull EntrySetIterator<E, T, K> pEntrySet);
+        boolean equals(@NotNull EntrySetIterator<E, T, K> pEntrySetIterator);
     }
 }
