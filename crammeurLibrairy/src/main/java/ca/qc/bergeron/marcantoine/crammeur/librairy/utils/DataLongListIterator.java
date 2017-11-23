@@ -266,6 +266,21 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Override
+    public Long firstValue() {
+        return 0L;
+    }
+
+    @Override
+    public Long nextValueOf(@NotNull Long pValue) {
+        return pValue + 1;
+    }
+
+    @Override
+    public Long previousValueOf(@NotNull Long pValue) {
+        return pValue - 1;
+    }
+
+    @Override
     public final int nextIndex() {
         if (mIndex + 1 != Long.MAX_VALUE && mIndex + 1 < mSize) {
             return collectionIndexOf(mIndex + 1);
@@ -326,7 +341,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Override
-    public boolean addToList(@Nullable T pData) {
+    public boolean addAtEnd(@Nullable T pData) {
         final int arrayIndex = (int) ((mSize - 1) / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
                 ? (int) (((mSize - 1) % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))
@@ -413,7 +428,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
                 @Override
                 public void perform(E pParameter) {
-                    retain.addToList(pParameter);
+                    retain.addAtEnd(pParameter);
                 }
 
                 @Override
@@ -429,7 +444,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 @Override
                 public void perform(T pParameter) {
                     if (!retain.contains(pParameter)) {
-                        delete.addToList(pParameter);
+                        delete.addAtEnd(pParameter);
                     }
                 }
 
@@ -632,7 +647,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 }
                 if (index >= pIndex) {
                     synchronized (result) {
-                        result.addToList(pParameter);
+                        result.addAtEnd(pParameter);
                     }
                 }
             }
@@ -663,7 +678,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 }
                 if (index >= pIndex1 && index < pIndex2) {
                     synchronized (result) {
-                        result.addToList(pParameter);
+                        result.addAtEnd(pParameter);
                     }
                 } else if (index >= pIndex2) {
                     synchronized (this) {

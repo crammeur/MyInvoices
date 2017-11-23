@@ -206,12 +206,27 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     @Override
+    public Integer firstValue() {
+        return 0;
+    }
+
+    @Override
+    public Integer nextValueOf(@NotNull Integer pValue) {
+        return pValue + 1;
+    }
+
+    @Override
+    public Integer previousValueOf(@NotNull Integer pValue) {
+        return pValue - 1;
+    }
+
+    @Override
     public final void add(@Nullable T pData) {
         values.add(mIndex,pData);
     }
 
     @Override
-    public final boolean addToList(@Nullable T pData) {
+    public final boolean addAtEnd(@Nullable T pData) {
         return values.add(pData);
     }
 
@@ -287,7 +302,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
             Parallel.For(collection, new Parallel.Operation<E>() {
                 @Override
                 public void perform(E pParameter) {
-                    retain.addToList(pParameter);
+                    retain.addAtEnd(pParameter);
                 }
 
                 @Override
@@ -303,7 +318,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
                 @Override
                 public void perform(T pParameter) {
                     if (!retain.contains(pParameter)){
-                        delete.addToList(pParameter);
+                        delete.addAtEnd(pParameter);
                     }
                 }
 

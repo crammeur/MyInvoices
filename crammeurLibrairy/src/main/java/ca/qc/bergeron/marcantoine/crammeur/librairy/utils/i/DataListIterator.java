@@ -20,11 +20,11 @@ public interface DataListIterator<T extends Data<K>, K extends Serializable> ext
 
     T set(@NotNull K pIndex, @Nullable T pData);
 
-    boolean addToList(@Nullable T pData);
-
-    <E extends T> boolean addAllToList(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) CollectionIterator<E, K> pDataCollectionIterator);
+    boolean addAtEnd(@Nullable T pData);
 
     void add(@NotNull K pIndex, @Nullable T pData);
+
+    <E extends T> boolean addAllAtEnd(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) CollectionIterator<E, K> pDataCollectionIterator);
 
     <E extends T> void addAll(@NotNull K pIndex, @NotNull DataCollectionIterator<E, K> pDataCollectionIterator);
 

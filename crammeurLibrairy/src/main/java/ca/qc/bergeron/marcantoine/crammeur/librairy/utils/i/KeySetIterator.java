@@ -1,9 +1,5 @@
 package ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i;
 
-import org.intellij.lang.annotations.Flow;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.io.Serializable;
 
 /**
@@ -11,9 +7,4 @@ import java.io.Serializable;
  */
 
 public interface KeySetIterator<K extends Serializable> extends KeyCollectionIterator<K,K> {
-
-    boolean addToSet(@Nullable K pKey);
-
-    <E extends K> boolean addAllToSet(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) CollectionIterator<E, K> pDataCollectionIterator);
-
 }

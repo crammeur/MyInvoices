@@ -7,14 +7,11 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.ListIterator;
 
-import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
-
 /**
- * Created by Marc-Antoine on 2017-09-18.
+ * Created by Marc-Antoine on 2017-11-23.
  */
 
-public interface DataMap<K extends Serializable, V extends Data<K>> {
-
+public interface MapIterator<K extends Serializable, V> extends SerializableValueOf<K> {
     K size();
 
     boolean isEmpty();
@@ -25,23 +22,23 @@ public interface DataMap<K extends Serializable, V extends Data<K>> {
 
     V get(K pKey);
 
-    V put(V pValue);
+    V put(K pKey, V pValue);
 
     V remove(K pKey);
 
-    void putAll(@NotNull DataMap<? extends K, ? extends V> pDataMap);
+    void putAll(@NotNull MapIterator<? extends K, ? extends V> pMapIterator);
 
     void clear();
 
     KeySetIterator<K> keySet();
 
-    DataListIterator<V, K> values();
+    CollectionIterator<V, K> values();
 
     EntrySetIterator<Entry<K, V>, V, K> entrySet();
 
-    boolean equals(@NotNull DataMap<K, V> pDataMap);
+    boolean equals(@NotNull MapIterator<K, V> pMapIterator);
 
-    interface Entry<K extends Serializable, V extends Data<K>> {
+    interface Entry<K extends Serializable, V> {
 
         K getKey();
 
@@ -51,7 +48,7 @@ public interface DataMap<K extends Serializable, V extends Data<K>> {
 
     }
 
-    interface EntryCollectionIterator<E extends Entry<K, T>, T extends Data<K>, K extends Serializable> extends Iterable<E>,ListIterator<E> {
+    interface EntryCollectionIterator<E extends Entry<K, T>, T, K extends Serializable> extends Iterable<E>,ListIterator<E> {
 
         @NotNull
         K size();
@@ -142,7 +139,7 @@ public interface DataMap<K extends Serializable, V extends Data<K>> {
 
     }
 
-    interface EntrySetIterator<E extends Entry<K, T>, T extends Data<K>, K extends Serializable> extends EntryCollectionIterator<E, T, K> {
+    interface EntrySetIterator<E extends Entry<K, T>, T, K extends Serializable> extends EntryCollectionIterator<E, T, K> {
         boolean equals(@NotNull EntrySetIterator<E, T, K> pEntrySetIterator);
     }
 }

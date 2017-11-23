@@ -5,7 +5,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.Iterator;
+
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.MapIterator;
 
 /**
  * Created by Marc-Antoine on 2017-11-23.
@@ -80,23 +81,63 @@ abstract class CollectionIterator<E, S extends Serializable> implements ca.qc.be
     }
 
     @Override
-    public final boolean equals(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E, S> pCollectionIterator) {
+    public boolean equals(@NotNull final ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E, S> pCollectionIterator) {
         //Save time
         if (this.equals((Object) pCollectionIterator)) return true;
         final boolean[] result = new boolean[1];
         if ((result[0] = this.size().equals(pCollectionIterator.size())) && !this.isEmpty()) {
-            final Iterator<Collection<E>> collections = pCollectionIterator.allCollections().iterator();
+            final MapIterator<Serializable,S> mapIterator = ;
             for (Collection<E> collection : this.allCollections()) {
-                final Iterator<E> iterator = collections.next().iterator();
+                Parallel.For(collection, new Parallel.Operation<E>() {
+                    @Override
+                    public void perform(final E pParameter) {
+                        Serializable serializable = new Serializable() {
+                            E value = pParameter;
+
+                            @Override
+                            public String toString() {
+                                return ca.qc.bergeron.marcantoine.crammeur.librairy.lang.Object.toGenericString(this.getClass(),this);
+                            }
+                        };
+                        synchronized (mapIterator) {
+                            if (mapIterator.containsKey(serializable)) {
+                                mapIterator.put(serializable,CollectionIterator.this.nextValueOf(mapIterator.get(serializable)));
+                            } else {
+                                mapIterator.put(serializable,CollectionIterator.this.firstValue());
+                            }
+                        }
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return true;
+                    }
+                });
+            }
+            for (Collection<E> collection : pCollectionIterator.allCollections()) {
                 Parallel.For(collection, new Parallel.Operation<E>() {
                     boolean follow = true;
                     @Override
-                    public void perform(E pParameter) {
-                        synchronized (result) {
-                            result[0] = pParameter.equals(iterator.next());
-                        }
-                        synchronized (this) {
-                            this.follow = !result[0];
+                    public void perform(final E pParameter) {
+                        Serializable serializable = new Serializable() {
+                            E value = pParameter;
+
+                            @Override
+                            public String toString() {
+                                return ca.qc.bergeron.marcantoine.crammeur.librairy.lang.Object.toGenericString(this.getClass(),this);
+                            }
+                        };
+                        if (mapIterator.get(serializable).equals(CollectionIterator.this.firstValue())) {
+                            synchronized (result) {
+                                result[0] = false;
+                            }
+                            synchronized (this) {
+                                follow = false;
+                            }
+                        } else {
+                            synchronized (mapIterator) {
+                                mapIterator.put(serializable,CollectionIterator.this.previousValueOf(mapIterator.get(serializable)));
+                            }
                         }
                     }
 
