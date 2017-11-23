@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataCollectionIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator;
 
 /**
@@ -399,11 +400,11 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Override
-    public final <E extends T> boolean retainAll(@NotNull DataListIterator<E, Long> pDataListIterator) {
+    public final <E extends T> boolean retainAll(@NotNull DataCollectionIterator<E, Long> pDataCollectionIterator) {
         final boolean[] result = new boolean[1];
         result[0] = true;
         final DataLongListIterator<T> retain = new DataLongListIterator<T>();
-        for (Collection<E> collection : pDataListIterator.allCollections()) {
+        for (Collection<E> collection : pDataCollectionIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
 
                 @Override

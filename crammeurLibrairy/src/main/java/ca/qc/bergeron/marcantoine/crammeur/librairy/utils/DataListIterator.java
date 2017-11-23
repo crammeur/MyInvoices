@@ -58,10 +58,10 @@ abstract class DataListIterator<T extends Data<K>, K extends Serializable> imple
     }
 
     @Override
-    public final <E extends T> boolean containsAll(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator<E, K> pDataListIterator) {
+    public final <E extends T> boolean containsAll(@NotNull DataCollectionIterator<E, K> pDataCollectionIterator) {
         final boolean[] result = new boolean[1];
-        result[0] = (this.isEmpty() && pDataListIterator.isEmpty());
-        for (Collection<E> collection : pDataListIterator.allCollections()) {
+        result[0] = (this.isEmpty() && pDataCollectionIterator.isEmpty());
+        for (Collection<E> collection : pDataCollectionIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
                 boolean follow = true;
                 @Override
@@ -111,9 +111,9 @@ abstract class DataListIterator<T extends Data<K>, K extends Serializable> imple
     }
 
     @Override
-    public final <E extends T> boolean removeAll(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator<E, K> pDataListIterator) {
+    public final <E extends T> boolean removeAll(@NotNull DataCollectionIterator<E, K> pDataCollectionIterator) {
         final boolean[] result = new boolean[1];
-        for (Collection<E> collection : pDataListIterator.allCollections()) {
+        for (Collection<E> collection : pDataCollectionIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
                 boolean follow = true;
                 @Override

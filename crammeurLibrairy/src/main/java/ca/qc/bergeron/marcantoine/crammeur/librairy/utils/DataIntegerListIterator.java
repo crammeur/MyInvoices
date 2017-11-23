@@ -11,6 +11,7 @@ import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataCollectionIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator;
 
 /**
@@ -277,11 +278,11 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     @Override
-    public final <E extends T> boolean retainAll(@NotNull DataListIterator<E, Integer> pDataListIterator) {
+    public final <E extends T> boolean retainAll(@NotNull DataCollectionIterator<E, Integer> pDataCollectionIterator) {
         final boolean[] result = new boolean[1];
         result[0] = true;
         final DataIntegerListIterator<T> retain = new DataIntegerListIterator<>();
-        for (Collection<E> collection : pDataListIterator.allCollections()) {
+        for (Collection<E> collection : pDataCollectionIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
                 @Override
                 public void perform(E pParameter) {

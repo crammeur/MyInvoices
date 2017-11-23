@@ -1,7 +1,7 @@
 package ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i;
 
-import org.intellij.lang.annotations.Flow;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -37,7 +37,7 @@ public interface DataMap<K extends Serializable, V extends Data<K>> {
 
     DataListIterator<V, K> values();
 
-    EntrySet<Entry<K, V>, V, K> entrySet();
+    EntrySetIterator<Entry<K, V>, V, K> entrySet();
 
     boolean equals(@NotNull DataMap<K, V> pDataMap);
 
@@ -51,11 +51,7 @@ public interface DataMap<K extends Serializable, V extends Data<K>> {
 
     }
 
-    interface EntryCollection<E extends Entry<K, T>, T extends Data<K>, K extends Serializable> extends Iterable<E>, ListIterator<E> {
-
-        int NULL_INDEX = -1;
-        int MIN_INDEX = 0;
-        int MAX_INDEX = Integer.MAX_VALUE;
+    interface EntryCollectionIterator<E extends Entry<K, T>, T extends Data<K>, K extends Serializable> extends Iterable<E>,ListIterator<E> {
 
         @NotNull
         K size();
@@ -65,24 +61,32 @@ public interface DataMap<K extends Serializable, V extends Data<K>> {
          *
          * @return Size of current specific collection
          */
-        int sizeActualCollection();
+        int currentCollectionSize();
 
         /**
-         * Return size of the specific collection where key is
+         * Return size of the specific collection where mIndex is
          *
-         * @param pKey Key
-         * @return Size of specific collection where key is
+         * @param pIndex Index
+         * @return Size of specific collection where mIndex is
          */
-        int sizeCollectionOf(@NotNull K pKey);
+        int collectionSizeOf(@NotNull K pIndex);
 
         boolean isEmpty();
 
         /**
-         * Return mIndex for actual data in currentCollection method
+         * Return mIndex for current entry in currentCollection method
          *
          * @return Index for currentCollection method
          */
-        int actualIndex();
+        int currentCollectionIndex();
+
+        /**
+         * Return mIndex of specific collection where mIndex is
+         *
+         * @param pIndex Index
+         * @return Index of specific collection where mIndex is
+         */
+        int collectionIndexOf(@NotNull K pIndex);
 
         /**
          * Return the specific collection where mIndex is
@@ -90,44 +94,55 @@ public interface DataMap<K extends Serializable, V extends Data<K>> {
          * @return Collection of current mIndex
          */
         @NotNull
-        Collection<T> actualCollection();
+        Collection<E> currentCollection();
+
+        @NotNull
+        Iterable<Collection<E>> allCollections();
 
         /**
-         * Return mIndex of specific collection where key is
+         * Return specific collection where mIndex is
          *
-         * @param pKey Key
-         * @return Index of specific collection where key is
-         */
-        int indexCollectionOf(@NotNull K pKey);
-
-        /**
-         * Return specific collection where key is
-         *
-         * @param pKey Key
-         * @return Collection where key is
+         * @param pIndex Index
+         * @return Collection where mIndex is
          */
         @NotNull
-        Collection<T> collectionOf(@NotNull K pKey);
+        Collection<E> collectionOf(@NotNull K pIndex);
 
-        boolean addAll(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) Iterable<? extends E> pIterable);
+        @Override
+        void add(@Nullable E pEntry);
 
-        boolean addAll(@NotNull K pIndex, @NotNull Iterable<? extends E> pDataIterable);
+        boolean addAtEnd(@Nullable E pEntry);
 
-        boolean contains(@NotNull E pData);
+        <E2 extends T> boolean addAllAtEnd(@NotNull EntryCollectionIterator<Entry<K,E2>, E2, K> pEntryCollectionIterator);
 
-        boolean containsAll(@NotNull Iterable<? extends E> pIterable);
+        @Nullable
+        @Override
+        E next();
 
-        boolean remove(@NotNull E pData);
+        @Nullable
+        @Override
+        E previous();
 
-        boolean removeAll(@NotNull Iterable<? extends E> pIterable);
+        boolean contains(@Nullable E pEntry);
 
-        boolean retainAll(@NotNull Iterable<? extends E> pIterable);
+        <E2 extends T> boolean containsAll(@NotNull EntryCollectionIterator<Entry<K,E2>, E2, K> pEntryCollectionIterator);
+
+        boolean equals(@NotNull EntryCollectionIterator<E, T, K> pEntryCollectionIterator);
+
+        @Override
+        void set(@Nullable E pEntry);
+
+        boolean remove(@Nullable E pEntry);
+
+        <E2 extends T> boolean removeAll(@NotNull EntryCollectionIterator<Entry<K,E2>, E2, K> pEntryCollectionIterator);
+
+        <E2 extends T> boolean retainAll(@NotNull EntryCollectionIterator<Entry<K,E2>, E2, K> pEntryCollectionIterator);
 
         void clear();
 
     }
 
-    interface EntrySet<E extends Entry<K, T>, T extends Data<K>, K extends Serializable> extends EntryCollection<E, T, K> {
-        boolean equals(@NotNull EntrySet<E, T, K> pEntrySet);
+    interface EntrySetIterator<E extends Entry<K, T>, T extends Data<K>, K extends Serializable> extends EntryCollectionIterator<E, T, K> {
+        boolean equals(@NotNull EntrySetIterator<E, T, K> pEntrySet);
     }
 }

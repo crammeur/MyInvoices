@@ -92,7 +92,7 @@ public interface DataCollectionIterator<T extends Data<K>, K extends Serializabl
 
     boolean contains(@Nullable T pData);
 
-    <E extends T> boolean containsAll(@NotNull DataListIterator<E, K> pDataListIterator);
+    <E extends T> boolean containsAll(@NotNull DataCollectionIterator<E, K> pDataCollectionIterator);
 
     boolean equals(@NotNull DataCollectionIterator<T, K> pDataCollectionIterator);
 
@@ -101,9 +101,9 @@ public interface DataCollectionIterator<T extends Data<K>, K extends Serializabl
 
     boolean remove(@Nullable T pData);
 
-    <E extends T> boolean removeAll(@NotNull DataListIterator<E, K> pDataListIterator);
+    <E extends T> boolean removeAll(@NotNull DataCollectionIterator<E, K> pDataCollectionIterator);
 
-    <E extends T> boolean retainAll(@NotNull DataListIterator<E, K> pDataListIterator);
+    <E extends T> boolean retainAll(@NotNull DataCollectionIterator<E, K> pDataCollectionIterator);
 
     void clear();
 
