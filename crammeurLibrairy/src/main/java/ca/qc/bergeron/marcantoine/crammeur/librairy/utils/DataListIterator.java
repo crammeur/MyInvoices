@@ -9,7 +9,7 @@ import java.util.Collection;
 import java.util.Iterator;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
-import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataCollectionIterator;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator;
 
 /**
  * Created by Marc-Antoine on 2017-09-22.
@@ -23,8 +23,8 @@ abstract class DataListIterator<T extends Data<K>, K extends Serializable> imple
     }
 
     @Override
-    public final int collectionSizeOf(@NotNull K pKey) {
-        return this.collectionOf(pKey).size();
+    public final int collectionSizeOf(@NotNull K pIndex) {
+        return this.collectionOf(pIndex).size();
     }
 
     @Override
@@ -58,7 +58,7 @@ abstract class DataListIterator<T extends Data<K>, K extends Serializable> imple
     }
 
     @Override
-    public final <E extends T> boolean containsAll(@NotNull DataCollectionIterator<E, K> pDataCollectionIterator) {
+    public final <E extends T> boolean containsAll(@NotNull CollectionIterator<E, K> pDataCollectionIterator) {
         final boolean[] result = new boolean[1];
         result[0] = (this.isEmpty() && pDataCollectionIterator.isEmpty());
         for (Collection<E> collection : pDataCollectionIterator.allCollections()) {
@@ -84,7 +84,7 @@ abstract class DataListIterator<T extends Data<K>, K extends Serializable> imple
     }
 
     @Override
-    public final <E extends T> boolean addAllAtEnd(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) DataCollectionIterator<E, K> pDataCollectionIterator) {
+    public final <E extends T> boolean addAllToCollection(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) CollectionIterator<E, K> pDataCollectionIterator) {
         final boolean[] result = new boolean[1];
         for (Collection<E> collection : pDataCollectionIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
@@ -93,7 +93,7 @@ abstract class DataListIterator<T extends Data<K>, K extends Serializable> imple
                 public void perform(E pParameter) {
                     synchronized (DataListIterator.this) {
                         synchronized (result) {
-                            result[0] = DataListIterator.this.addAtEnd(pParameter);
+                            result[0] = DataListIterator.this.addToCollection(pParameter);
                         }
                     }
                     synchronized (this) {
@@ -111,9 +111,9 @@ abstract class DataListIterator<T extends Data<K>, K extends Serializable> imple
     }
 
     @Override
-    public final <E extends T> boolean removeAll(@NotNull DataCollectionIterator<E, K> pDataCollectionIterator) {
+    public final <E extends T> boolean removeAll(@NotNull CollectionIterator<E, K> pCollectionIterator) {
         final boolean[] result = new boolean[1];
-        for (Collection<E> collection : pDataCollectionIterator.allCollections()) {
+        for (Collection<E> collection : pCollectionIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
                 boolean follow = true;
                 @Override
@@ -136,7 +136,7 @@ abstract class DataListIterator<T extends Data<K>, K extends Serializable> imple
     }
 
     @Override
-    public final boolean equals(@NotNull DataCollectionIterator<T, K> pDataCollectionIterator) {
+    public final boolean equals(@NotNull CollectionIterator<T, K> pDataCollectionIterator) {
         //Save time
         if (this.equals((Object) pDataCollectionIterator)) return true;
         final boolean[] result = new boolean[1];

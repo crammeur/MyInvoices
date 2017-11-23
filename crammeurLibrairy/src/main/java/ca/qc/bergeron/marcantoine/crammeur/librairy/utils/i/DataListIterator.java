@@ -13,7 +13,7 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
  * Created by Marc-Antoine on 2017-09-18.
  */
 
-public interface DataListIterator<T extends Data<K>, K extends Serializable> extends DataCollectionIterator<T, K> {
+public interface DataListIterator<T extends Data<K>, K extends Serializable> extends DataCollectionIterator<T, K>, ListIterator<T> {
 
     T get(@NotNull K pIndex);
 
@@ -21,7 +21,7 @@ public interface DataListIterator<T extends Data<K>, K extends Serializable> ext
 
     void add(@NotNull K pIndex, @Nullable T pData);
 
-    <E extends T> void addAll(@NotNull K pIndex, @NotNull DataListIterator<E, K> pDataListIterator);
+    <E extends T> void addAll(@NotNull K pIndex, @NotNull DataCollectionIterator<E, K> pDataCollectionIterator);
 
     @NotNull
     K indexOf(@Nullable T pData);

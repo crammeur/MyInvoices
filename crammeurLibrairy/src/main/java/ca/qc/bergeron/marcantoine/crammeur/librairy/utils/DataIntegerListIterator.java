@@ -11,6 +11,7 @@ import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataCollectionIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator;
 
@@ -54,8 +55,8 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     @Override
-    public final <E extends T> void addAll(@NotNull final Integer pIndex, @NotNull DataListIterator<E, Integer> pDataListIterator) {
-        Parallel.For(pDataListIterator.currentCollection(), new Parallel.Operation<E>() {
+    public final <E extends T> void addAll(@NotNull final Integer pIndex, @NotNull DataCollectionIterator<E, Integer> pDataCollectionIterator) {
+        Parallel.For(pDataCollectionIterator.currentCollection(), new Parallel.Operation<E>() {
             int index = pIndex;
             @Override
             public void perform(E pParameter) {
@@ -210,7 +211,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     @Override
-    public final boolean addAtEnd(@Nullable T pData) {
+    public final boolean addToCollection(@Nullable T pData) {
         return values.add(pData);
     }
 
@@ -278,15 +279,15 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     @Override
-    public final <E extends T> boolean retainAll(@NotNull DataCollectionIterator<E, Integer> pDataCollectionIterator) {
+    public final <E extends T> boolean retainAll(@NotNull CollectionIterator<E, Integer> pCollectionIterator) {
         final boolean[] result = new boolean[1];
         result[0] = true;
         final DataIntegerListIterator<T> retain = new DataIntegerListIterator<>();
-        for (Collection<E> collection : pDataCollectionIterator.allCollections()) {
+        for (Collection<E> collection : pCollectionIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
                 @Override
                 public void perform(E pParameter) {
-                    retain.addAtEnd(pParameter);
+                    retain.addToCollection(pParameter);
                 }
 
                 @Override
@@ -302,7 +303,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
                 @Override
                 public void perform(T pParameter) {
                     if (!retain.contains(pParameter)){
-                        delete.addAtEnd(pParameter);
+                        delete.addToCollection(pParameter);
                     }
                 }
 

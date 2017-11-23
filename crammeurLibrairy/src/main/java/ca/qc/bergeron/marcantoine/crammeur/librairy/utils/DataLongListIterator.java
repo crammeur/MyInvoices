@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataCollectionIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator;
 
@@ -269,7 +270,10 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
         if (mIndex + 1 != Long.MAX_VALUE && mIndex + 1 < mSize) {
             return collectionIndexOf(mIndex + 1);
         } else {
-            return collectionIndexOf(mSize);
+            if (mSize == Long.MAX_VALUE)
+                return Integer.MAX_VALUE;
+            else
+                return collectionIndexOf(mSize);
         }
     }
 
@@ -322,7 +326,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Override
-    public boolean addAtEnd(@Nullable T pData) {
+    public boolean addToCollection(@Nullable T pData) {
         final int arrayIndex = (int) ((mSize - 1) / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
                 ? (int) (((mSize - 1) % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))
@@ -400,16 +404,16 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Override
-    public final <E extends T> boolean retainAll(@NotNull DataCollectionIterator<E, Long> pDataCollectionIterator) {
+    public final <E extends T> boolean retainAll(@NotNull CollectionIterator<E, Long> pCollectionIterator) {
         final boolean[] result = new boolean[1];
         result[0] = true;
         final DataLongListIterator<T> retain = new DataLongListIterator<T>();
-        for (Collection<E> collection : pDataCollectionIterator.allCollections()) {
+        for (Collection<E> collection : pCollectionIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
 
                 @Override
                 public void perform(E pParameter) {
-                    retain.addAtEnd(pParameter);
+                    retain.addToCollection(pParameter);
                 }
 
                 @Override
@@ -425,7 +429,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 @Override
                 public void perform(T pParameter) {
                     if (!retain.contains(pParameter)) {
-                        delete.addAtEnd(pParameter);
+                        delete.addToCollection(pParameter);
                     }
                 }
 
@@ -472,7 +476,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Override
-    public final <E extends T> void addAll(@NotNull final Long pIndex, @NotNull DataListIterator<E, Long> pDataListIterator) {
+    public final <E extends T> void addAll(@NotNull final Long pIndex, @NotNull DataCollectionIterator<E, Long> pDataCollectionIterator) {
         Parallel.Operation<E> operation = new Parallel.Operation<E>() {
             long index = pIndex;
 
@@ -495,7 +499,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 return true;
             }
         };
-        for (Collection<E> collection : pDataListIterator.allCollections()) {
+        for (Collection<E> collection : pDataCollectionIterator.allCollections()) {
             Parallel.For(collection, operation);
         }
     }
@@ -628,7 +632,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 }
                 if (index >= pIndex) {
                     synchronized (result) {
-                        result.addAtEnd(pParameter);
+                        result.addToCollection(pParameter);
                     }
                 }
             }
@@ -659,7 +663,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
                 }
                 if (index >= pIndex1 && index < pIndex2) {
                     synchronized (result) {
-                        result.addAtEnd(pParameter);
+                        result.addToCollection(pParameter);
                     }
                 } else if (index >= pIndex2) {
                     synchronized (this) {

@@ -106,7 +106,7 @@ public class UtilsTests {
                     this.Id = pId;
                 }
             };
-            dl.addAtEnd(data3);
+            dl.addToCollection(data3);
         }
         Assert.assertTrue(dl.hasNext());
         dl.next();
@@ -136,9 +136,9 @@ public class UtilsTests {
                         }
                     };
                     synchronized (dl) {
-                        dl.addAtEnd(data2);
+                        dl.addToCollection(data2);
                         synchronized (dl2) {
-                            dl2.addAtEnd(data2);
+                            dl2.addToCollection(data2);
                         }
                     }
                     System.out.println("Index : " + String.valueOf(index));
@@ -161,7 +161,7 @@ public class UtilsTests {
                 public void perform(Data<Long> pParameter) {
                     System.out.println(pParameter);
                     synchronized (dl3) {
-                        dl3.addAtEnd(pParameter);
+                        dl3.addToCollection(pParameter);
                     }
                 }
 
