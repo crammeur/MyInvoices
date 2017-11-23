@@ -270,7 +270,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
         if (mIndex + 1 != Long.MAX_VALUE && mIndex + 1 < mSize) {
             return collectionIndexOf(mIndex + 1);
         } else {
-            if (mSize == Long.MAX_VALUE)
+            if (collectionIndexOf(mSize) == 0)
                 return Integer.MAX_VALUE;
             else
                 return collectionIndexOf(mSize);
