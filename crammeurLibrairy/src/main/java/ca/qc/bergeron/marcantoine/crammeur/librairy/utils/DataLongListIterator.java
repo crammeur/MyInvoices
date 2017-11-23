@@ -183,7 +183,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Nullable
-    public final T actual() {
+    protected final T actual() {
         if (mIndex != -1 && mIndex < Long.MAX_VALUE) {
             final int arrayIndex = (int) (mIndex / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX));
             final int listIndex = (arrayIndex == 1)
@@ -239,11 +239,13 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
                     @Override
                     public void remove() {
+                        if (mIndex == NULL_INDEX) throw new IllegalStateException(String.valueOf(mIndex));
                         if (mIndex < Integer.MAX_VALUE) {
                             values[0].remove((int) mIndex);
                         } else {
                             values[1].remove((int) (mIndex % Integer.MAX_VALUE));
                         }
+                        mIndex--;
                     }
 
                 };
@@ -272,7 +274,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
     @Override
     public final int previousIndex() {
-        if (mIndex - 1 > MIN_INDEX && mIndex != NULL_INDEX) {
+        if (mIndex - 1 >= MIN_INDEX && mIndex != NULL_INDEX) {
             return collectionIndexOf(mIndex - 1);
         } else {
             return NULL_INDEX;
@@ -302,15 +304,37 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
     @Override
     public final void add(@Nullable T pData) {
-        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
+        long index;
+        if (mIndex == NULL_INDEX)
+            index = mIndex + 1;
+        else
+            index = mIndex;
+        final int arrayIndex = (int) (index / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
-                ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))
-                : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
+                ? (int) ((index % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))
+                : (int) (index / ((long) MAX_COLLECTION_INDEX + 1));
         if (values[arrayIndex].isEmpty() || (listIndex > 0 && values[arrayIndex].get(listIndex - 1).size() == Integer.MAX_VALUE)) {
             values[arrayIndex].add(new LinkedList<T>());
         }
-        values[arrayIndex].get(values[arrayIndex].size() - 1).add(pData);
+        values[arrayIndex].get(values[arrayIndex].size() - 1).add(collectionIndexOf(index),pData);
         mSize++;
+    }
+
+    @Override
+    public boolean addAtEnd(@Nullable T pData) {
+        final int arrayIndex = (int) ((mSize - 1) / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
+        final int listIndex = (arrayIndex == 1)
+                ? (int) (((mSize - 1) % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))
+                : (int) ((mSize - 1) / ((long) MAX_COLLECTION_INDEX + 1));
+        if (values[arrayIndex].isEmpty() || (listIndex > 0 && values[arrayIndex].get(listIndex - 1).size() == Integer.MAX_VALUE)) {
+            values[arrayIndex].add(new LinkedList<T>());
+        }
+        try {
+            return values[arrayIndex].get(values[arrayIndex].size() - 1).add(pData);
+        } finally {
+            mSize++;
+        }
+
     }
 
     @Override

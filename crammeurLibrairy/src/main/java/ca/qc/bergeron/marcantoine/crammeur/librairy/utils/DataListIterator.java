@@ -84,22 +84,30 @@ abstract class DataListIterator<T extends Data<K>, K extends Serializable> imple
     }
 
     @Override
-    public final <E extends T> void addAll(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) DataCollectionIterator<E, K> pDataCollectionIterator) {
+    public final <E extends T> boolean addAllAtEnd(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) DataCollectionIterator<E, K> pDataCollectionIterator) {
+        final boolean[] result = new boolean[1];
         for (Collection<E> collection : pDataCollectionIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
+                boolean follow = true;
                 @Override
                 public void perform(E pParameter) {
                     synchronized (DataListIterator.this) {
-                        DataListIterator.this.add(pParameter);
+                        synchronized (result) {
+                            result[0] = DataListIterator.this.addAtEnd(pParameter);
+                        }
+                    }
+                    synchronized (this) {
+                        follow = result[0];
                     }
                 }
 
                 @Override
                 public boolean follow() {
-                    return true;
+                    return follow;
                 }
             });
         }
+        return result[0];
     }
 
     @Override

@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.NoSuchElementException;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator;
@@ -27,7 +28,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     public DataIntegerListIterator() {
-        values = new LinkedList<T>();
+        values = new LinkedList<>();
     }
 
     @Override
@@ -38,34 +39,44 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
 
     @Override
     public T get(@NotNull Integer pIndex) {
-        return null;
+        return values.get(pIndex);
     }
 
     @Override
-    public T set(@NotNull Integer pIndex, @Nullable T pData) {
-        return null;
+    public final T set(@NotNull Integer pIndex, @Nullable T pData) {
+        return values.set(pIndex,pData);
     }
 
     @Override
     public void add(@NotNull Integer pIndex, @Nullable T pData) {
-
+        values.add(pIndex,pData);
     }
 
     @Override
     public <E extends T> void addAll(@NotNull Integer pIndex, @NotNull DataListIterator<E, Integer> pDataListIterator) {
+        Parallel.For(pDataListIterator.currentCollection(), new Parallel.Operation<E>() {
+            @Override
+            public void perform(E pParameter) {
 
+            }
+
+            @Override
+            public boolean follow() {
+                return false;
+            }
+        });
     }
 
     @NotNull
     @Override
     public Integer indexOf(@Nullable T pData) {
-        return null;
+        return values.indexOf(pData);
     }
 
     @NotNull
     @Override
     public Integer lastIndexOf(@Nullable T pData) {
-        return null;
+        return values.lastIndexOf(pData);
     }
 
     @NotNull
@@ -82,72 +93,114 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
 
     @NotNull
     @Override
-    public List<T> currentCollection() {
-        return null;
+    public final List<T> currentCollection() {
+        return values;
     }
 
     @NotNull
     @Override
-    public Iterable<Collection<T>> allCollections() {
-        return null;
+    public final Iterable<Collection<T>> allCollections() {
+        return new Iterable<Collection<T>>() {
+            @NotNull
+            @Override
+            public Iterator<Collection<T>> iterator() {
+                return new Iterator<Collection<T>>() {
+                    private final LinkedList<T> values = DataIntegerListIterator.this.values;
+                    private transient volatile int mIndex = NULL_INDEX;
+                    private transient volatile int mSize = 1;
+
+                    @Override
+                    public boolean hasNext() {
+                        return mIndex + 1 < mSize;
+                    }
+
+                    @Override
+                    public Collection<T> next() {
+                        return values;
+                    }
+                };
+            }
+        };
     }
 
     @NotNull
     @Override
     public List<T> collectionOf(@NotNull Integer pIndex) {
-        return null;
+        if (pIndex > values.size() - 1) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
+        return values;
     }
 
     @Override
-    public void add(@Nullable T pData) {
+    public final void add(@Nullable T pData) {
+        values.add(this.currentCollectionIndex(),pData);
+    }
 
+    @Override
+    public boolean addAtEnd(@Nullable T pData) {
+        return values.add(pData);
     }
 
     @Override
     public boolean hasNext() {
-        return false;
+        return mIndex + 1 < values.size();
     }
 
     @Nullable
     @Override
     public T next() {
-        return null;
+        if (hasNext()) {
+            return values.get(++mIndex);
+        } else {
+            throw new NoSuchElementException();
+        }
     }
 
     @Override
     public boolean hasPrevious() {
-        return false;
+        return (mIndex != NULL_INDEX) && mIndex - 1 != NULL_INDEX;
     }
 
     @Nullable
     @Override
     public T previous() {
-        return null;
+        if (hasPrevious()) {
+            return values.get(--mIndex);
+        } else {
+            throw new NoSuchElementException();
+        }
     }
 
     @Override
-    public int nextIndex() {
-        return 0;
+    public final int nextIndex() {
+        if (mIndex + 1 != Long.MAX_VALUE && mIndex + 1 < values.size()) {
+            return mIndex + 1;
+        } else {
+            return values.size();
+        }
     }
 
     @Override
-    public int previousIndex() {
-        return 0;
+    public final int previousIndex() {
+        if (mIndex - 1 >= MIN_INDEX && mIndex != NULL_INDEX) {
+            return mIndex - 1;
+        } else {
+            return NULL_INDEX;
+        }
     }
 
     @Override
-    public void remove() {
-
+    public final void remove() {
+        values.remove(mIndex);
     }
 
     @Override
-    public void set(@Nullable T pData) {
-
+    public final void set(@Nullable T pData) {
+        values.set(mIndex,pData);
     }
 
     @Override
-    public boolean remove(@Nullable T pData) {
-        return false;
+    public final boolean remove(@Nullable T pData) {
+        return values.remove(pData);
     }
 
     @Override
@@ -156,8 +209,9 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     @Override
-    public void clear() {
-
+    public final void clear() {
+        values.clear();
+        mIndex = NULL_INDEX;
     }
 
     @NotNull
@@ -180,28 +234,28 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
 
     @NotNull
     @Override
-    public Integer size() {
-        return null;
+    public final Integer size() {
+        return values.size();
     }
 
     @Override
-    public boolean isEmpty() {
-        return false;
+    public final boolean isEmpty() {
+        return values.isEmpty();
     }
 
     @Override
-    public int currentCollectionIndex() {
-        return 0;
+    public final int currentCollectionIndex() {
+        return mIndex;
     }
 
     @Override
-    public int collectionIndexOf(@NotNull Integer pIndex) {
-        return 0;
+    public final int collectionIndexOf(@NotNull Integer pIndex) {
+        return pIndex;
     }
 
     @NotNull
     @Override
-    public Iterator<T> iterator() {
-        return null;
+    public final Iterator<T> iterator() {
+        return new DataIntegerListIterator<>(values);
     }
 }

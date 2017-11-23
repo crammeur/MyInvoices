@@ -86,10 +86,10 @@ public class UtilsTests {
         dl.add(data2);
         Assert.assertTrue(dl.contains(data) && dl.contains(data2));
         Assert.assertTrue(dl.hasNext());
-        Assert.assertTrue(dl.next().getId() == 1L);
+        Assert.assertTrue(dl.next().getId() == null);
         Assert.assertTrue(dl.hasPrevious());
         Assert.assertTrue(!dl.hasNext());
-        Assert.assertTrue(dl.previous().getId() == null);
+        Assert.assertTrue(dl.previous().getId() == 1L);
         Assert.assertTrue(!dl.hasPrevious());
         for (int index = 0; index < 10; index++) {
             Data<Long> data3 = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
@@ -106,7 +106,7 @@ public class UtilsTests {
                     this.Id = pId;
                 }
             };
-            dl.add(data3);
+            dl.addAtEnd(data3);
         }
         Assert.assertTrue(dl.hasNext());
         dl.next();
@@ -136,9 +136,9 @@ public class UtilsTests {
                         }
                     };
                     synchronized (dl) {
-                        dl.add(data2);
+                        dl.addAtEnd(data2);
                         synchronized (dl2) {
-                            dl2.add(data2);
+                            dl2.addAtEnd(data2);
                         }
                     }
                     System.out.println("Index : " + String.valueOf(index));
@@ -161,7 +161,7 @@ public class UtilsTests {
                 public void perform(Data<Long> pParameter) {
                     System.out.println(pParameter);
                     synchronized (dl3) {
-                        dl3.add(pParameter);
+                        dl3.addAtEnd(pParameter);
                     }
                 }
 

@@ -78,7 +78,9 @@ public interface DataCollectionIterator<T extends Data<K>, K extends Serializabl
     @Override
     void add(@Nullable T pData);
 
-    <E extends T> void addAll(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) DataCollectionIterator<E, K> pDataCollectionIterator);
+    boolean addAtEnd(@Nullable T pData);
+
+    <E extends T> boolean addAllAtEnd(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) DataCollectionIterator<E, K> pDataCollectionIterator);
 
     @Nullable
     @Override
