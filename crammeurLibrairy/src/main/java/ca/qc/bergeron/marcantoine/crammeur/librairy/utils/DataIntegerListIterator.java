@@ -206,18 +206,24 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     @Override
-    public Integer firstValue() {
-        return 0;
-    }
+    public Integer count(@Nullable final T pEntity) {
+        final int[] result = new int[1];
+        Parallel.For(this.currentCollection(), new Parallel.Operation<T>() {
+            @Override
+            public void perform(T pParameter) {
+                if ((pEntity == null && pParameter == null) || (pEntity != null && pEntity.equals(pParameter))) {
+                    synchronized (result) {
+                        result[0]++;
+                    }
+                }
+            }
 
-    @Override
-    public Integer nextValueOf(@NotNull Integer pValue) {
-        return pValue + 1;
-    }
-
-    @Override
-    public Integer previousValueOf(@NotNull Integer pValue) {
-        return pValue - 1;
+            @Override
+            public boolean follow() {
+                return true;
+            }
+        });
+        return result[0];
     }
 
     @Override

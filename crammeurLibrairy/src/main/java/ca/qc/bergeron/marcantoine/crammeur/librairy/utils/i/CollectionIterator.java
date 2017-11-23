@@ -11,7 +11,7 @@ import java.util.Iterator;
  * Created by Marc-Antoine on 2017-11-23.
  */
 
-public interface CollectionIterator<E, S extends Serializable> extends Iterable<E>, Iterator<E>, SerializableValueOf<S> {
+public interface CollectionIterator<E, S extends Serializable> extends Iterable<E>, Iterator<E> {
 
     int NULL_INDEX = -1;
     int MIN_INDEX = 0;
@@ -71,6 +71,8 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterable<
      */
     @NotNull
     Collection<E> collectionOf(@NotNull S pIndex);
+
+    S count(@Nullable E pEntity);
 
     void add(@Nullable E pEntity);
 

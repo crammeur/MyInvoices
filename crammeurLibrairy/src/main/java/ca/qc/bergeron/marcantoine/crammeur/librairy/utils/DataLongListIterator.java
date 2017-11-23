@@ -266,18 +266,26 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     }
 
     @Override
-    public Long firstValue() {
-        return 0L;
-    }
+    public Long count(@Nullable final T pEntity) {
+        final long[] result = new long[1];
+        for (Collection<T> collection : this.allCollections()) {
+            Parallel.For(collection, new Parallel.Operation<T>() {
+                @Override
+                public void perform(T pParameter) {
+                    if ((pEntity == null && pParameter == null) || (pEntity != null && pEntity.equals(pParameter))) {
+                        synchronized (result) {
+                            result[0]++;
+                        }
+                    }
+                }
 
-    @Override
-    public Long nextValueOf(@NotNull Long pValue) {
-        return pValue + 1;
-    }
-
-    @Override
-    public Long previousValueOf(@NotNull Long pValue) {
-        return pValue - 1;
+                @Override
+                public boolean follow() {
+                    return true;
+                }
+            });
+        }
+        return result[0];
     }
 
     @Override

@@ -11,7 +11,7 @@ import java.util.ListIterator;
  * Created by Marc-Antoine on 2017-11-23.
  */
 
-public interface MapIterator<K extends Serializable, V> extends SerializableValueOf<K> {
+public interface Map<K extends Serializable, V> {
     K size();
 
     boolean isEmpty();
@@ -26,7 +26,7 @@ public interface MapIterator<K extends Serializable, V> extends SerializableValu
 
     V remove(K pKey);
 
-    void putAll(@NotNull MapIterator<? extends K, ? extends V> pMapIterator);
+    void putAll(@NotNull Map<? extends K, ? extends V> pMap);
 
     void clear();
 
@@ -36,7 +36,7 @@ public interface MapIterator<K extends Serializable, V> extends SerializableValu
 
     EntrySetIterator<Entry<K, V>, V, K> entrySet();
 
-    boolean equals(@NotNull MapIterator<K, V> pMapIterator);
+    boolean equals(@NotNull Map<K, V> pMap);
 
     interface Entry<K extends Serializable, V> {
 
