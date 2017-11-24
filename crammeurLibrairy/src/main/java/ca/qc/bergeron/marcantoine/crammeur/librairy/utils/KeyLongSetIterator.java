@@ -21,9 +21,18 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
     protected transient volatile long mIndex = NULL_INDEX;
     protected transient volatile long mSize = 0;
 
-    private KeyLongSetIterator(KeySetIterator pKeySetIterator) throws NoSuchFieldException, IllegalAccessException {
-        values[0] = (((HashSet<HashSet<Long>>[]) pKeySetIterator.getClass().getField("values").get(this)))[0];
-        values[1] = (((HashSet<HashSet<Long>>[]) pKeySetIterator.getClass().getField("values").get(this)))[1];
+    private KeyLongSetIterator(HashSet<HashSet<Long>> pHashSetOne, HashSet<HashSet<Long>> pHashSetTwo) {
+        values[0] = pHashSetOne;
+        values[1] = pHashSetTwo;
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+        values[0] = null;
+        values[1] = null;
+        mIndex = NULL_INDEX;
+        mSize = 0;
     }
 
     @Override
@@ -85,20 +94,22 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
     @NotNull
     @Override
     public Collection<Long> collectionOf(@NotNull final Long pIndex) {
-        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
+        final int arrayIndex = (int) (pIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final long[] index = new long[1];
         final Collection<Long> result = new LinkedList<>();
         for (Set<Long> set : values[arrayIndex]) {
-            Parallel.For(set, new Parallel.Operation<Long>() {
+            Parallel.For(set, new Parallel.Operation<Long>() {;
                 boolean follow = true;
                 @Override
                 public void perform(Long pParameter) {
-                    synchronized (result) {
-                        if (!result.add(pParameter)) throw new RuntimeException("The result has not been added");
+                    if (pIndex <= index[0]) {
+                        synchronized (result) {
+                            if (!result.add(pParameter)) throw new RuntimeException("The result has not been added");
+                        }
                     }
                     synchronized (this) {
                         index[0]++;
-
+                        if (result.size() == Integer.MAX_VALUE) follow = false;
                     }
                 }
 
@@ -107,6 +118,7 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
                     return follow;
                 }
             });
+            if (result.size() == Integer.MAX_VALUE) break;
         }
         return result;
     }
@@ -114,7 +126,9 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
     @NotNull
     @Override
     public Long count(@Nullable Long pEntity) {
-        return null;
+        final long[] result = new long[1];
+
+        return result[0];
     }
 
     @Override
@@ -161,7 +175,7 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
     @NotNull
     @Override
-    public Iterator<Long> iterator() {
-        return null;
+    public final Iterator<Long> iterator() {
+        return new KeyLongSetIterator(values[0],values[1]);
     }
 }

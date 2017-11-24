@@ -23,7 +23,7 @@ public abstract class CollectionIterator<E, S extends Serializable> implements c
     }
 
     @Override
-    public final boolean contains(@Nullable final E pData) {
+    public boolean contains(@Nullable final E pData) {
         final boolean[] result = new boolean[1];
 
         for (Collection<E> collection : this.allCollections()) {
@@ -53,7 +53,7 @@ public abstract class CollectionIterator<E, S extends Serializable> implements c
     }
 
     @Override
-    public final <E2 extends E> boolean containsAll(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E2, S> pCollectionIterator) {
+    public <E2 extends E> boolean containsAll(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E2, S> pCollectionIterator) {
         final boolean[] result = new boolean[1];
         result[0] = (this.isEmpty() && pCollectionIterator.isEmpty());
         for (Collection<E2> collection : pCollectionIterator.allCollections()) {

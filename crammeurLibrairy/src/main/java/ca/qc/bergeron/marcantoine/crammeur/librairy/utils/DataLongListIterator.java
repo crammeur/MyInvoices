@@ -209,7 +209,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
         final int listIndex = (arrayIndex == 1)
                 ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))
                 : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
-        return new LinkedList<>(values[arrayIndex].get(listIndex));
+        return values[arrayIndex].get(listIndex);
     }
 
     @Override
@@ -262,7 +262,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
         final int listIndex = (arrayIndex == 1)
                 ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))
                 : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
-        return new LinkedList<>(values[arrayIndex].get(listIndex));
+        return values[arrayIndex].get(listIndex);
     }
 
     @NotNull

@@ -14,7 +14,7 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator;
  * Created by Marc-Antoine on 2017-09-22.
  */
 
-abstract class DataListIterator<T extends Data<K>, K extends Serializable> extends ca.qc.bergeron.marcantoine.crammeur.librairy.utils.CollectionIterator<T,K> implements ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator<T,K>{
+public abstract class DataListIterator<T extends Data<K>, K extends Serializable> extends ca.qc.bergeron.marcantoine.crammeur.librairy.utils.CollectionIterator<T,K> implements ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator<T,K>{
 
     public <E extends T> boolean addAllAtEnd(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E, K> pCollectionIterator) {
         final boolean[] result = new boolean[1];
