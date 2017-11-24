@@ -72,6 +72,7 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterable<
     @NotNull
     Collection<E> collectionOf(@NotNull S pIndex);
 
+    @NotNull
     S count(@Nullable E pEntity);
 
     void add(@Nullable E pEntity);

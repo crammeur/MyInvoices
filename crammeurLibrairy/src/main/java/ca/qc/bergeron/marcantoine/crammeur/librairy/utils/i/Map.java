@@ -5,7 +5,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.ListIterator;
+import java.util.Iterator;
 
 /**
  * Created by Marc-Antoine on 2017-11-23.
@@ -36,7 +36,7 @@ public interface Map<K extends Serializable, V> {
 
     EntrySetIterator<Entry<K, V>, V, K> entrySet();
 
-    boolean equals(@NotNull Map<K, V> pMap);
+    boolean equals(@Nullable Map<K, V> pMap);
 
     interface Entry<K extends Serializable, V> {
 
@@ -48,7 +48,7 @@ public interface Map<K extends Serializable, V> {
 
     }
 
-    interface EntryCollectionIterator<E extends Entry<K, T>, T, K extends Serializable> extends Iterable<E>,ListIterator<E> {
+    interface EntryCollectionIterator<E extends Entry<K, T>, T, K extends Serializable> extends Iterable<E>,Iterator<E> {
 
         @NotNull
         K size();
@@ -105,19 +105,23 @@ public interface Map<K extends Serializable, V> {
         @NotNull
         Collection<E> collectionOf(@NotNull K pIndex);
 
-        @Override
         void add(@Nullable E pEntry);
 
         boolean addAtEnd(@Nullable E pEntry);
 
         <E2 extends T> boolean addAllAtEnd(@NotNull EntryCollectionIterator<Entry<K,E2>, E2, K> pEntryCollectionIterator);
 
+        int nextIndex();
+
         @Nullable
         @Override
         E next();
 
+        boolean hasPrevious();
+
+        int previousIndex();
+
         @Nullable
-        @Override
         E previous();
 
         boolean contains(@Nullable E pEntry);
@@ -126,7 +130,6 @@ public interface Map<K extends Serializable, V> {
 
         boolean equals(@NotNull EntryCollectionIterator<E, T, K> pEntryCollectionIterator);
 
-        @Override
         void set(@Nullable E pEntry);
 
         boolean remove(@Nullable E pEntry);

@@ -265,6 +265,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
         return new LinkedList<>(values[arrayIndex].get(listIndex));
     }
 
+    @NotNull
     @Override
     public Long count(@Nullable final T pEntity) {
         final long[] result = new long[1];

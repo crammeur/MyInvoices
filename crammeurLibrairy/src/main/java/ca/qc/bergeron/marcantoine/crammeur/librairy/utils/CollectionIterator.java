@@ -10,7 +10,7 @@ import java.util.Collection;
  * Created by Marc-Antoine on 2017-11-23.
  */
 
-abstract class CollectionIterator<E, S extends Serializable> implements ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E,S> {
+public abstract class CollectionIterator<E, S extends Serializable> implements ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E,S> {
 
     @Override
     public final int currentCollectionSize() {
@@ -89,7 +89,7 @@ abstract class CollectionIterator<E, S extends Serializable> implements ca.qc.be
                     boolean follow = true;
                     @Override
                     public void perform(final E pParameter) {
-                        if (!pCollectionIterator.contains(pParameter) || !CollectionIterator.this.count(pParameter).equals(pCollectionIterator.count(pParameter))) {
+                        if (!CollectionIterator.this.count(pParameter).equals(pCollectionIterator.count(pParameter))) {
                             synchronized (result) {
                                 result[0] = false;
                             }

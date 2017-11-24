@@ -1,6 +1,6 @@
 package ca.qc.bergeron.marcantoine.crammeur.librairy.utils;
 
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 
@@ -11,7 +11,7 @@ import java.io.Serializable;
 abstract class Map<K extends Serializable,V> implements ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.Map<K,V> {
 
     @Override
-    public boolean equals(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.Map<K, V> pMap) {
-        return false;
+    public final boolean equals(@Nullable ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.Map<K, V> pMap) {
+        return pMap != null && this.keySet().equals(pMap.keySet()) && this.values().equals(pMap.values());
     }
 }

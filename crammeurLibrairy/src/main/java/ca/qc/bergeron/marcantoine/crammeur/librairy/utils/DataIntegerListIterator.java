@@ -205,6 +205,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
         return values;
     }
 
+    @NotNull
     @Override
     public Integer count(@Nullable final T pEntity) {
         final int[] result = new int[1];

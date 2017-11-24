@@ -15,13 +15,9 @@ public interface DataSortedMap<K extends Number, V extends Data<K>> extends Data
 
     DataSortedMap<K, V> headMap(K toKey);
 
-    KeySetIterator<K> keySet();
-
     K lastKey();
 
     DataMap<K, V> subDataMap(K fromKey, K toKey);
 
     DataSortedMap<K, V> tailDataMap(K fromKey);
-
-    DataListIterator<V, K> values();
 }
