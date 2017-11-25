@@ -42,6 +42,9 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
     @Override
     public boolean remove(@Nullable Long pKey) {
+        for (Collection<Long> collection : this.allCollections()) {
+
+        }
         return false;
     }
 
@@ -127,15 +130,48 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
     @NotNull
     @Override
-    public Long count(@Nullable Long pEntity) {
+    public Long count(@Nullable final Long pEntity) {
         final long[] result = new long[1];
+        for (Collection<Long> collection : this.allCollections()) {
+            Parallel.For(collection, new Parallel.Operation<Long>() {
+                @Override
+                public void perform(Long pParameter) {
+                    if ((pEntity == null && pParameter == null) || (pEntity != null && pEntity.equals(pParameter))) {
+                        synchronized (result) {
+                            result[0]++;
+                        }
+                    }
+                }
 
+                @Override
+                public boolean follow() {
+                    return true;
+                }
+            });
+        }
         return result[0];
     }
 
     @Override
     public void add(@Nullable Long pEntity) {
+        final boolean[] contain = new boolean[1];
+        final long[] index = new long[1];
+        for (int arrayIndex=0; arrayIndex<values.length; arrayIndex++) {
+            Parallel.For(values[arrayIndex], new Parallel.Operation<HashSet<Long>>() {
+                @Override
+                public void perform(HashSet<Long> pParameter) {
 
+                    synchronized (index) {
+                        index[0]++;
+                    }
+                }
+
+                @Override
+                public boolean follow() {
+                    return false;
+                }
+            });
+        }
     }
 
     @Override
