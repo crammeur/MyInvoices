@@ -153,24 +153,65 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
     }
 
     @Override
-    public void add(@Nullable Long pEntity) {
+    public void add(@Nullable final Long pEntity) {
         final boolean[] contain = new boolean[1];
-        final long[] index = new long[1];
-        for (int arrayIndex=0; arrayIndex<values.length; arrayIndex++) {
-            Parallel.For(values[arrayIndex], new Parallel.Operation<HashSet<Long>>() {
-                @Override
-                public void perform(HashSet<Long> pParameter) {
-
-                    synchronized (index) {
-                        index[0]++;
+        final long[] traveled = new long[1];
+        if (this.isEmpty()) {
+            values[0].add(new HashSet<Long>(){{if (!add(pEntity)) throw new RuntimeException("The value has not been added");}});
+        } else {
+            for (int arrayIndex=0; arrayIndex<values.length; arrayIndex++) {
+                final int finalArrayIndex = arrayIndex;
+                Parallel.For(values[arrayIndex], new Parallel.Operation<HashSet<Long>>() {
+                    boolean follow = true;
+                    @Override
+                    public void perform(HashSet<Long> pParameter) {
+                        if (pParameter.contains(pEntity)) {
+                            synchronized (contain) {
+                                contain[0] = true;
+                            }
+                            synchronized (this) {
+                                follow = false;
+                            }
+                        }
+                        synchronized (traveled) {
+                            traveled[0]+=pParameter.size();
+                        }
+                        if (!contain[0] && traveled[0] == mSize) {
+                            if (pParameter.size() == Integer.MAX_VALUE) {
+                                HashSet<Long> set = new HashSet<>();
+                                if (set.add(pEntity)) {
+                                    synchronized (values) {
+                                        if (values[finalArrayIndex].add(set)) {
+                                            synchronized (KeyLongSetIterator.this) {
+                                                KeyLongSetIterator.this.mSize++;
+                                            }
+                                        } else {
+                                            throw new RuntimeException("The value has not been added");
+                                        }
+                                    }
+                                } else {
+                                    throw new RuntimeException("The value has not been added");
+                                }
+                            } else {
+                                if (pParameter.add(pEntity)) {
+                                    synchronized (KeyLongSetIterator.this) {
+                                        KeyLongSetIterator.this.mSize++;
+                                    }
+                                } else {
+                                    throw new RuntimeException("The value has not been added");
+                                }
+                            }
+                        }
                     }
-                }
 
-                @Override
-                public boolean follow() {
-                    return false;
-                }
-            });
+                    @Override
+                    public boolean follow() {
+                        return follow;
+                    }
+                });
+                if (contain[0]) break;
+            }
+            if (contain[0]) throw new RuntimeException();
         }
     }
 
