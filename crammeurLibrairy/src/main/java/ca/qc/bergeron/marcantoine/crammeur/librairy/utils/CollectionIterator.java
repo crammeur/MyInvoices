@@ -79,7 +79,8 @@ public abstract class CollectionIterator<E, S extends Serializable> implements c
     }
 
     @Override
-    public boolean equals(@NotNull final ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E, S> pCollectionIterator) {
+    public boolean equals(@Nullable final ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E, S> pCollectionIterator) {
+        if (pCollectionIterator == null) return false;
         //Save time
         if (this.equals((Object) pCollectionIterator)) return true;
         final boolean[] result = new boolean[1];

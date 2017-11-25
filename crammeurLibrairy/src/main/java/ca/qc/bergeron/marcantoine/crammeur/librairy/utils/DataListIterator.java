@@ -2,6 +2,7 @@ package ca.qc.bergeron.marcantoine.crammeur.librairy.utils;
 
 import org.intellij.lang.annotations.Flow;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -43,7 +44,7 @@ public abstract class DataListIterator<T extends Data<K>, K extends Serializable
     }
 
     @Override
-    public final <E extends T> boolean removeAll(@NotNull CollectionIterator<E, K> pCollectionIterator) {
+    public <E extends T> boolean removeAll(@NotNull CollectionIterator<E, K> pCollectionIterator) {
         final boolean[] result = new boolean[1];
         for (Collection<E> collection : pCollectionIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
@@ -68,7 +69,8 @@ public abstract class DataListIterator<T extends Data<K>, K extends Serializable
     }
 
     @Override
-    public final boolean equals(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<T, K> pCollectionIterator) {
+    public boolean equals(@Nullable ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<T, K> pCollectionIterator) {
+        if (pCollectionIterator == null) return false;
         //Save time
         if (this.equals((Object) pCollectionIterator)) return true;
         final boolean[] result = new boolean[1];

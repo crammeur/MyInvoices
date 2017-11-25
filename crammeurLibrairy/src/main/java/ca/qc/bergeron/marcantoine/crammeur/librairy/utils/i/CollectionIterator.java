@@ -95,5 +95,5 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterable<
 
     <E2 extends E> boolean containsAll(@NotNull CollectionIterator<E2, S> pCollectionIterator);
 
-    boolean equals(@NotNull CollectionIterator<E, S> pCollectionIterator);
+    boolean equals(@Nullable CollectionIterator<E, S> pCollectionIterator);
 }

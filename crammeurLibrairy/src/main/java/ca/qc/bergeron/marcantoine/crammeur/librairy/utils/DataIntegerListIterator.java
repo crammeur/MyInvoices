@@ -209,7 +209,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     @Override
     public Integer count(@Nullable final T pEntity) {
         final int[] result = new int[1];
-        Parallel.For(this.currentCollection(), new Parallel.Operation<T>() {
+        Parallel.For(values, new Parallel.Operation<T>() {
             @Override
             public void perform(T pParameter) {
                 if ((pEntity == null && pParameter == null) || (pEntity != null && pEntity.equals(pParameter))) {

@@ -6,7 +6,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator;
@@ -24,6 +24,11 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
     private KeyLongSetIterator(HashSet<HashSet<Long>> pHashSetOne, HashSet<HashSet<Long>> pHashSetTwo) {
         values[0] = pHashSetOne;
         values[1] = pHashSetTwo;
+    }
+
+    public KeyLongSetIterator() {
+        values[0] = new HashSet<>();
+        values[1] = new HashSet<>();
     }
 
     @Override
@@ -60,29 +65,29 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
     @NotNull
     @Override
-    public Long size() {
+    public final Long size() {
         return mSize;
     }
 
     @Override
-    public boolean isEmpty() {
+    public final boolean isEmpty() {
         return mSize == 0;
     }
 
     @Override
-    public int currentCollectionIndex() {
+    public final int currentCollectionIndex() {
         return collectionIndexOf(mIndex);
     }
 
     @Override
-    public int collectionIndexOf(@NotNull Long pIndex) {
+    public final int collectionIndexOf(@NotNull Long pIndex) {
         return (int) (pIndex % Integer.MAX_VALUE);
     }
 
     @NotNull
     @Override
-    public Collection<Long> currentCollection() {
-        return null;
+    public final Set<Long> currentCollection() {
+        return collectionOf(mIndex);
     }
 
     @NotNull
@@ -93,31 +98,28 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
     @NotNull
     @Override
-    public Collection<Long> collectionOf(@NotNull final Long pIndex) {
+    public Set<Long> collectionOf(@NotNull Long pIndex) {
+        if (pIndex < MIN_INDEX || pIndex >= mSize) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
+        final Set<Long> result = new LinkedHashSet<>();
         final int arrayIndex = (int) (pIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
-        final long[] index = new long[1];
-        final Collection<Long> result = new LinkedList<>();
-        for (Set<Long> set : values[arrayIndex]) {
-            Parallel.For(set, new Parallel.Operation<Long>() {;
-                boolean follow = true;
-                @Override
-                public void perform(Long pParameter) {
-                    if (pIndex <= index[0]) {
+        long size = (arrayIndex == 1)?(long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX:0;
+        for (final Set<Long> set : values[arrayIndex]) {
+            size+=set.size();
+            if (pIndex < size) {
+                Parallel.For(set, new Parallel.Operation<Long>() {
+                    @Override
+                    public void perform(Long pParameter) {
                         synchronized (result) {
                             if (!result.add(pParameter)) throw new RuntimeException("The result has not been added");
                         }
                     }
-                    synchronized (this) {
-                        index[0]++;
-                        if (result.size() == Integer.MAX_VALUE) follow = false;
-                    }
-                }
 
-                @Override
-                public boolean follow() {
-                    return follow;
-                }
-            });
+                    @Override
+                    public boolean follow() {
+                        return true;
+                    }
+                });
+            }
             if (result.size() == Integer.MAX_VALUE) break;
         }
         return result;

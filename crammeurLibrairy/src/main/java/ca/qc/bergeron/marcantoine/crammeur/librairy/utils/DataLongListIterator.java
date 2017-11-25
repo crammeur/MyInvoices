@@ -258,6 +258,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     @Override
     @NotNull
     public final LinkedList<T> collectionOf(@NotNull Long pIndex) {
+        if (pIndex < MIN_INDEX || pIndex >= mSize) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
         final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
         final int listIndex = (arrayIndex == 1)
                 ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))

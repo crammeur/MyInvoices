@@ -27,7 +27,7 @@ public abstract class Data<K extends Serializable> extends Object implements ca.
     public abstract void setId(@Nullable K pId);
 
     @Override
-    public int compareTo(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data<K> kData) {
+    public int compareTo(@Nullable ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data<K> kData) {
         return new DataComparator<K>().compare(this, kData);
     }
 
