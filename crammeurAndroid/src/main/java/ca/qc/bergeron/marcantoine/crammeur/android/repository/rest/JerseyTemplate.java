@@ -33,7 +33,7 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.exceptions.KeyException;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.repository.i.Repository;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.repository.rest.REST;
-import ca.qc.bergeron.marcantoine.crammeur.librairy.gson.ListOfSomething;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.Generic;
 
 /**
  * Created by Marc-Antoine on 2017-06-28.
@@ -109,7 +109,7 @@ public final class JerseyTemplate<T extends Data<K>, K extends Number> extends R
             Response response = invocationBuilder.get(Response.class);
 
             if (response.getStatus() == Response.Status.OK.getStatusCode())
-                result = mGson.fromJson(response.readEntity(String.class), new ListOfSomething<>(mClazz));
+                result = mGson.fromJson(response.readEntity(String.class), Generic.getActualType(result.getClass(), Collection.class));
             else if (response.getStatus() != Response.Status.NO_CONTENT.getStatusCode())
                 throw new RuntimeException(response.getStatusInfo().getStatusCode() + " : " + response.getStatusInfo().getReasonPhrase());
 

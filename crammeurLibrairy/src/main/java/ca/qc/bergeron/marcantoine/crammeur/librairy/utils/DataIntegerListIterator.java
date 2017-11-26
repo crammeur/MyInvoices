@@ -309,7 +309,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
             Parallel.For(collection, new Parallel.Operation<E>() {
                 @Override
                 public void perform(E pParameter) {
-                    retain.addAtEnd(pParameter);
+                    if (!retain.addAtEnd(pParameter)) throw new RuntimeException("The value has not been added");
                 }
 
                 @Override
@@ -325,7 +325,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
                 @Override
                 public void perform(T pParameter) {
                     if (!retain.contains(pParameter)){
-                        delete.addAtEnd(pParameter);
+                        if (!delete.addAtEnd(pParameter)) throw new RuntimeException("The value has not been added");
                     }
                 }
 
@@ -338,20 +338,17 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
 
         for (Collection<T> collection : delete.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<T>() {
-                boolean follow = true;
+
                 @Override
                 public void perform(T pParameter) {
                     synchronized (result) {
                         result[0] = DataIntegerListIterator.this.remove(pParameter);
                     }
-                    synchronized (this) {
-                        follow = result[0];
-                    }
                 }
 
                 @Override
                 public boolean follow() {
-                    return follow;
+                    return result[0];
                 }
             });
         }

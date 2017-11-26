@@ -183,7 +183,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
     @Override
     public final int collectionIndexOf(@NotNull Long pIndex) {
-        return (int) (pIndex % Integer.MAX_VALUE);
+        return (int) (pIndex % ((long) Integer.MAX_VALUE + 1));
     }
 
     @Override

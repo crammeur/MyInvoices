@@ -32,7 +32,6 @@ public class BaseDateTimeAdapter implements JsonDeserializer<BaseDateTime>, Json
 
     @Override
     public JsonElement serialize(BaseDateTime src, Type typeOfSrc, JsonSerializationContext context) {
-        JsonPrimitive result = new JsonPrimitive(src.toString());
-        return result;
+        return new JsonPrimitive(src.toString());
     }
 }

@@ -1,5 +1,7 @@
 package ca.qc.bergeron.marcantoine.crammeur.librairy.utils;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -71,10 +73,11 @@ public class XMLResourceBundle extends ResourceBundle {
     }
 
     @Override
-    protected Object handleGetObject(String key) {
+    protected Object handleGetObject(@NotNull String key) {
         return props.getProperty(key);
     }
 
+    @NotNull
     @Override
     public Enumeration<String> getKeys() {
         Set<String> handleKeys = props.stringPropertyNames();

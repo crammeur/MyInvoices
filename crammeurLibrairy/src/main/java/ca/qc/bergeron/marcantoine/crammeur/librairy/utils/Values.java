@@ -30,7 +30,7 @@ public final class Values {
         defaultValues.put(Double.class, 0.0);
     }
 
-    public static final <T> T defaultValueFor(Class<T> clazz) {
+    public static <T> T defaultValueFor(Class<T> clazz) {
         if (!defaultValues.containsKey(clazz)) return null;
         return (T) defaultValues.get(clazz);
     }

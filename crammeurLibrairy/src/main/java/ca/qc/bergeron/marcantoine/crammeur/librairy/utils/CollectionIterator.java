@@ -87,22 +87,19 @@ public abstract class CollectionIterator<E, S extends Serializable> implements c
         if ((result[0] = this.size().equals(pCollectionIterator.size())) && !this.isEmpty()) {
             for (Collection<E> collection : this.allCollections()) {
                 Parallel.For(collection, new Parallel.Operation<E>() {
-                    boolean follow = true;
+
                     @Override
                     public void perform(final E pParameter) {
                         if (!CollectionIterator.this.count(pParameter).equals(pCollectionIterator.count(pParameter))) {
                             synchronized (result) {
                                 result[0] = false;
                             }
-                            synchronized (this) {
-                                follow = false;
-                            }
                         }
                     }
 
                     @Override
                     public boolean follow() {
-                        return follow;
+                        return result[0];
                     }
                 });
                 if (!result[0]) break;
