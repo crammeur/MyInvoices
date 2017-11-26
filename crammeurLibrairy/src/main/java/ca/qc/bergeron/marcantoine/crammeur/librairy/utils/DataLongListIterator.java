@@ -3,7 +3,6 @@ package ca.qc.bergeron.marcantoine.crammeur.librairy.utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -24,24 +23,10 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     protected transient volatile long mIndex = NULL_INDEX;
     protected transient volatile long mSize = 0L;
 
-    private DataLongListIterator(@NotNull LinkedList<LinkedList<T>> pListOne, @NotNull LinkedList<LinkedList<T>> pListTwo) {
+    private DataLongListIterator(@NotNull LinkedList<LinkedList<T>> pListOne, @NotNull LinkedList<LinkedList<T>> pListTwo, long pSize) {
         values[0] = pListOne;
         values[1] = pListTwo;
-        for (LinkedList<LinkedList<T>> lla : values) {
-            Parallel.For(lla, new Parallel.Operation<LinkedList<T>>() {
-                @Override
-                public void perform(LinkedList<T> pParameter) {
-                    synchronized (DataLongListIterator.this) {
-                        mSize+=pParameter.size();
-                    }
-                }
-
-                @Override
-                public boolean follow() {
-                    return true;
-                }
-            });
-        }
+        mSize = pSize;
     }
 
     public DataLongListIterator() {
@@ -170,7 +155,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
     @Override
     public final boolean hasPrevious() {
-        return (mIndex != NULL_INDEX) && mIndex - 1 != NULL_INDEX;
+        return (mIndex != NULL_INDEX) && mIndex - 1 >= MIN_INDEX;
     }
 
     @Nullable
@@ -181,15 +166,14 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
             return actual();
         } else
             throw new NoSuchElementException();
-
     }
 
     @Nullable
     protected final T actual() {
-        if (mIndex != -1 && mIndex < Long.MAX_VALUE) {
+        if (mIndex != NULL_INDEX && mIndex < Long.MAX_VALUE) {
             final int arrayIndex = (int) (mIndex / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX));
             final int listIndex = (arrayIndex == 1)
-                    ? BigDecimal.valueOf(((mIndex / ((long) MAX_COLLECTION_INDEX + 1)) + 1)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_HALF_UP).add(BigDecimal.ONE.negate()).multiply(BigDecimal.valueOf(2)).intValue()
+                    ? (int) ((mIndex % (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1))) / ((long) MAX_COLLECTION_INDEX + 1))
                     : (int) (mIndex / ((long) MAX_COLLECTION_INDEX + 1));
             return values[arrayIndex].get(listIndex).get(collectionIndexOf(mIndex));
         } else
@@ -223,7 +207,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
                     private LinkedList<LinkedList<T>>[] values = DataLongListIterator.this.values;
                     private transient volatile long mIndex = NULL_INDEX;
-                    private transient volatile long mSize = values[0].size() + values[1].size();
+                    private transient volatile long mSize = (long) values[0].size() + values[1].size();
 
                     @Override
                     public boolean hasNext() {
@@ -304,7 +288,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
     @Override
     public final int previousIndex() {
-        if (mIndex - 1 >= MIN_INDEX && mIndex != NULL_INDEX) {
+        if (mIndex != NULL_INDEX && mIndex - 1 >= MIN_INDEX) {
             return collectionIndexOf(mIndex - 1);
         } else {
             return NULL_INDEX;
@@ -497,7 +481,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
 
     @Override
     public final Iterator<T> iterator() {
-        return new DataLongListIterator<T>(values[0], values[1]);
+        return new DataLongListIterator<T>(values[0], values[1], mSize);
     }
 
     @Override
@@ -640,7 +624,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends ca.qc.berg
     @NotNull
     @Override
     public final DataListIterator<T, Long> listIterator() {
-        return new DataLongListIterator<>(values[0], values[1]);
+        return new DataLongListIterator<>(values[0], values[1],mSize);
     }
 
     @NotNull

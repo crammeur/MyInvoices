@@ -7,8 +7,10 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
+import ca.qc.bergeron.marcantoine.crammeur.librairy.exceptions.ContainsException;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator;
 
 /**
@@ -21,9 +23,10 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
     protected transient volatile long mIndex = NULL_INDEX;
     protected transient volatile long mSize = 0;
 
-    private KeyLongSetIterator(HashSet<HashSet<Long>> pHashSetOne, HashSet<HashSet<Long>> pHashSetTwo) {
+    private KeyLongSetIterator(HashSet<HashSet<Long>> pHashSetOne, HashSet<HashSet<Long>> pHashSetTwo, long pSize) {
         values[0] = pHashSetOne;
         values[1] = pHashSetTwo;
+        mSize = pSize;
     }
 
     public KeyLongSetIterator() {
@@ -41,21 +44,112 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
     }
 
     @Override
-    public boolean remove(@Nullable Long pKey) {
-        for (Collection<Long> collection : this.allCollections()) {
+    public boolean remove(@Nullable final Long pKey) {
+        final boolean[] result = new boolean[1];
+        final HashSet<Long>[] last = new HashSet[1];
+        Parallel.Operation<HashSet<Long>> operation = new Parallel.Operation<HashSet<Long>>() {
+            HashSet<Long> previous = null;
+            @Override
+            public void perform(HashSet<Long> pParameter) {
+                if (pParameter.contains(pKey)) {
+                    synchronized (result) {
+                        result[0] = pParameter.remove(pKey);
+                    }
+                    if (result[0]) {
+                        synchronized (KeyLongSetIterator.this) {
+                            mSize--;
+                        }
+                    }
+                    synchronized (this) {
+                        previous = pParameter;
+                    }
+                } else if (result[0] && previous != null) {
+                    Set<Long> remove = new HashSet<>();
+                    for (Long l : pParameter) {
+                        if (previous.size() != Integer.MAX_VALUE) {
+                            if (!previous.add(l)) throw new RuntimeException("The value has not been added");
+                            if (!remove.add(l)) throw new RuntimeException("The value has not been added");
+                        } else {
+                            break;
+                        }
+                    }
+                    for (Long l : remove) {
+                        if (!pParameter.remove(l)) throw new RuntimeException("The value has not been removed");
+                    }
+                }
+                synchronized (last) {
+                    last[0] = pParameter;
+                }
+            }
 
+            @Override
+            public boolean follow() {
+                return true;
+            }
+        };
+        for (int arrayIndex=0;arrayIndex<values.length;arrayIndex++) {
+            Parallel.For(values[arrayIndex], operation);
         }
-        return false;
-    }
+        if (last[0] != null && last[0].isEmpty()) {
+            if (values[values.length-1].remove(last[0])) throw new RuntimeException("The last empty HashSet has not been removed");
+        }
 
-    @Override
-    public <E extends Long> boolean removeAll(@NotNull CollectionIterator<E, Long> pKeyCollectionIterator) {
-        return false;
+        return result[0];
     }
 
     @Override
     public <E extends Long> boolean retainAll(@NotNull CollectionIterator<E, Long> pKeyCollectionIterator) {
-        return false;
+        final boolean[] result = new boolean[1];
+        result[0] = true;
+        final KeyLongSetIterator retain = new KeyLongSetIterator();
+        for (Collection<E> collection : pKeyCollectionIterator.allCollections()) {
+            Parallel.For(collection, new Parallel.Operation<E>() {
+
+                @Override
+                public void perform(E pParameter) {
+                    retain.add(pParameter);
+                }
+
+                @Override
+                public boolean follow() {
+                    return true;
+                }
+            });
+        }
+
+        final KeyLongSetIterator delete = new KeyLongSetIterator();
+        for (Collection<Long> collection : this.allCollections()) {
+            Parallel.For(collection, new Parallel.Operation<Long>() {
+                @Override
+                public void perform(Long pParameter) {
+                    if (!retain.contains(pParameter)) {
+                        delete.add(pParameter);
+                    }
+                }
+
+                @Override
+                public boolean follow() {
+                    return true;
+                }
+            });
+        }
+
+        for (Collection<Long> collection : delete.allCollections()) {
+            Parallel.For(collection, new Parallel.Operation<Long>() {
+                @Override
+                public void perform(Long pParameter) {
+                    synchronized (result) {
+                        result[0] = KeyLongSetIterator.this.remove(pParameter);
+                    }
+                }
+
+                @Override
+                public boolean follow() {
+                    return result[0];
+                }
+            });
+        }
+        return result[0];
     }
 
     @Override
@@ -95,8 +189,87 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
     @NotNull
     @Override
-    public Iterable<Collection<Long>> allCollections() {
-        return null;
+    public final Iterable<Collection<Long>> allCollections() {
+        return new Iterable<Collection<Long>>() {
+            @NotNull
+            @Override
+            public Iterator<Collection<Long>> iterator() {
+                return new Iterator<Collection<Long>>() {
+
+                    private HashSet<HashSet<Long>>[] values = KeyLongSetIterator.this.values;
+                    private transient volatile long mIndex = NULL_INDEX;
+                    private transient volatile long mSize = (long) values[0].size() + values[1].size();
+
+                    @Override
+                    public boolean hasNext() {
+                        return mIndex + 1 < mSize;
+                    }
+
+                    @Override
+                    public Collection<Long> next() {
+                        final Collection<Long>[] result = new Collection[1];
+                        final int arrayIndex = (int) (++mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
+                        final long[] traveled = new long[1];
+                        traveled[0] = (arrayIndex == 1)? MAX_COLLECTION_INDEX:0;
+                        Parallel.For(values[arrayIndex], new Parallel.Operation<HashSet<Long>>() {
+                            @Override
+                            public void perform(HashSet<Long> pParameter) {
+                                if (mIndex == traveled[0]) {
+                                    synchronized (result) {
+                                        result[0] = pParameter;
+                                    }
+                                }
+                                synchronized (traveled) {
+                                    traveled[0]++;
+                                }
+                            }
+
+                            @Override
+                            public boolean follow() {
+                                return mIndex > traveled[0];
+                            }
+                        });
+                        return result[0];
+                    }
+
+                    @Override
+                    public void remove() {
+                        if (mIndex == NULL_INDEX) throw new IllegalStateException(String.valueOf(NULL_INDEX));
+                        final int arrayIndex = (int) (++mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
+                        final long[] traveled = new long[1];
+                        traveled[0] = (arrayIndex == 1)?MAX_COLLECTION_INDEX:0;
+                        final HashSet<Long>[] remove = new HashSet[1];
+                        Parallel.For(values[arrayIndex], new Parallel.Operation<HashSet<Long>>() {
+                            @Override
+                            public void perform(HashSet<Long> pParameter) {
+                                if (mIndex == traveled[0]) {
+                                    synchronized (remove) {
+                                        remove[0] = pParameter;
+                                    }
+                                }
+                                synchronized (traveled) {
+                                    traveled[0]++;
+                                }
+                            }
+
+                            @Override
+                            public boolean follow() {
+                                return mIndex > traveled[0];
+                            }
+                        });
+                        if (remove[0] != null) {
+                            if (!values[arrayIndex].remove(remove[0])) throw new RuntimeException("The set has not been removed");
+                            if (values[0].size() < Integer.MAX_VALUE && values[1].size() != 0) {
+                                HashSet<Long> set = values[1].iterator().next();
+                                values[0].add(set);
+                                values[1].remove(set);
+                            }
+                            mIndex--;
+                        }
+                    }
+                };
+            }
+        };
     }
 
     @NotNull
@@ -154,23 +327,19 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
     @Override
     public void add(@Nullable final Long pEntity) {
-        final boolean[] contain = new boolean[1];
-        final long[] traveled = new long[1];
         if (this.isEmpty()) {
             values[0].add(new HashSet<Long>(){{if (!add(pEntity)) throw new RuntimeException("The value has not been added");}});
         } else {
+            final boolean[] contain = new boolean[1];
+            final long[] traveled = new long[1];
             for (int arrayIndex=0; arrayIndex<values.length; arrayIndex++) {
                 final int finalArrayIndex = arrayIndex;
                 Parallel.For(values[arrayIndex], new Parallel.Operation<HashSet<Long>>() {
-                    boolean follow = true;
                     @Override
                     public void perform(HashSet<Long> pParameter) {
                         if (pParameter.contains(pEntity)) {
                             synchronized (contain) {
                                 contain[0] = true;
-                            }
-                            synchronized (this) {
-                                follow = false;
                             }
                         }
                         synchronized (traveled) {
@@ -206,55 +375,108 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
                     @Override
                     public boolean follow() {
-                        return follow;
+                        return !contain[0];
                     }
                 });
                 if (contain[0]) break;
             }
-            if (contain[0]) throw new RuntimeException();
+            if (contain[0]) throw new ContainsException("The value is already present");
+        }
+    }
+
+    protected final Long actual() {
+        if (mIndex != NULL_INDEX && mIndex < Long.MAX_VALUE) {
+            final int arrayIndex = (int) (mIndex / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX));
+            final Long[] result = new Long[1];
+            final long[] index = new long[1];
+            index[0] = NULL_INDEX;
+            for (Collection<Long> collection : values[arrayIndex]) {
+                Parallel.For(collection, new Parallel.Operation<Long>() {
+                    @Override
+                    public void perform(Long pParameter) {
+                        synchronized (index) {
+                            index[0]++;
+                        }
+                        if (index[0] == mIndex) {
+                            synchronized (result) {
+                                result[0] = pParameter;
+                            }
+                        }
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return index[0] < mIndex;
+                    }
+                });
+            }
+            return result[0];
+        } else
+            throw new IndexOutOfBoundsException(String.valueOf(mIndex));
+
+    }
+
+    @Override
+    public final int nextIndex() {
+        if (mIndex + 1 != Long.MAX_VALUE && mIndex + 1 < mSize) {
+            return collectionIndexOf(mIndex + 1);
+        } else {
+            if (collectionIndexOf(mSize) == 0)
+                return Integer.MAX_VALUE;
+            else
+                return collectionIndexOf(mSize);
         }
     }
 
     @Override
-    public int nextIndex() {
-        return 0;
-    }
-
-    @Override
-    public boolean hasNext() {
-        return false;
+    public final boolean hasNext() {
+        return mIndex + 1 < mSize;
     }
 
     @Nullable
     @Override
-    public Long next() {
-        return null;
+    public final Long next() {
+        if (hasNext()) {
+            mIndex++;
+            return actual();
+        } else
+            throw new NoSuchElementException();
     }
 
     @Override
-    public boolean hasPrevious() {
-        return false;
+    public final boolean hasPrevious() {
+        return (mIndex != NULL_INDEX) && mIndex - 1 >= MIN_INDEX;
     }
 
     @Override
-    public int previousIndex() {
-        return 0;
+    public final int previousIndex() {
+        if (mIndex != NULL_INDEX && mIndex - 1 >= MIN_INDEX) {
+            return collectionIndexOf(mIndex - 1);
+        } else {
+            return NULL_INDEX;
+        }
     }
 
     @Nullable
     @Override
-    public Long previous() {
-        return null;
+    public final Long previous() {
+        if (hasPrevious()) {
+            mIndex--;
+            return actual();
+        } else
+            throw new NoSuchElementException();
     }
 
     @Override
-    public void set(@Nullable Long pEntity) {
-
+    public final void set(@Nullable Long pEntity) {
+        if (!this.contains(pEntity)) {
+            this.add(pEntity);
+        }
     }
 
     @NotNull
     @Override
     public final Iterator<Long> iterator() {
-        return new KeyLongSetIterator(values[0],values[1]);
+        return new KeyLongSetIterator(values[0],values[1],mSize);
     }
 }
