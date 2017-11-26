@@ -84,7 +84,7 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
             @Override
             public boolean follow() {
-                return true;
+                return !result[0];
             }
         };
         for (int arrayIndex=0;arrayIndex<values.length;arrayIndex++) {
@@ -226,7 +226,7 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
                             @Override
                             public boolean follow() {
-                                return mIndex > traveled[0];
+                                return mIndex >= traveled[0];
                             }
                         });
                         return result[0];
@@ -254,12 +254,12 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
                             @Override
                             public boolean follow() {
-                                return mIndex > traveled[0];
+                                return mIndex >= traveled[0];
                             }
                         });
                         if (remove[0] != null) {
                             if (!values[arrayIndex].remove(remove[0])) throw new RuntimeException("The set has not been removed");
-                            if (values[0].size() < Integer.MAX_VALUE && values[1].size() != 0) {
+                            while (values[0].size() < Integer.MAX_VALUE && !values[1].isEmpty()) {
                                 HashSet<Long> set = values[1].iterator().next();
                                 values[0].add(set);
                                 values[1].remove(set);
@@ -329,6 +329,7 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
     public void add(@Nullable final Long pEntity) {
         if (this.isEmpty()) {
             values[0].add(new HashSet<Long>(){{if (!add(pEntity)) throw new RuntimeException("The value has not been added");}});
+            mSize++;
         } else {
             final boolean[] contain = new boolean[1];
             final long[] traveled = new long[1];
