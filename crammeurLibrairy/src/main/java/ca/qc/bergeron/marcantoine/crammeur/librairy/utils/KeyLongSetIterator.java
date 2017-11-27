@@ -386,7 +386,7 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
     }
 
     protected final Long actual() {
-        if (mIndex != NULL_INDEX && mIndex < Long.MAX_VALUE) {
+        if (mIndex != NULL_INDEX && mIndex < mSize) {
             final int arrayIndex = (int) (mIndex / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX));
             final Long[] result = new Long[1];
             final long[] index = new long[1];

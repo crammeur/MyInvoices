@@ -32,7 +32,6 @@ public abstract class Invoice {
             "GST % / TPS %;" +
             "PST % / TVP %;" +
             "Price / Prix;" +
-            //"Unit / Unité;" +
             "Quantity / Quantité;" +
             "Subtotal / Sous-total;" +
             "HST / TVH;" +
