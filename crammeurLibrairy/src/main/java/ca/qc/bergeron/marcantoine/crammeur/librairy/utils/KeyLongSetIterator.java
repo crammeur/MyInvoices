@@ -30,8 +30,80 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
     }
 
     public KeyLongSetIterator() {
-        values[0] = new HashSet<>();
-        values[1] = new HashSet<>();
+        values[0] = new HashSet<HashSet<Long>>() {
+            @Override
+            public boolean contains(final Object o) {
+                if (super.contains(o)) return true;
+                final boolean[] result = new boolean[1];
+                Parallel.For(this, new Parallel.Operation<HashSet<Long>>() {
+                    @Override
+                    public void perform(HashSet<Long> pParameter) {
+                        if (pParameter.equals(o)) {
+                            synchronized (result) {
+                                result[0] = true;
+                            }
+                        }
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return !result[0];
+                    }
+                });
+                return result[0];
+            }
+
+            @Override
+            public boolean remove(Object o) {
+                if (super.remove(o)) return true;
+                boolean result = false;
+                Iterator<HashSet<Long>> iterator = this.iterator();
+                while (iterator.hasNext() && !result) {
+                    if (iterator.next().equals(o)) {
+                        iterator.remove();
+                        result = true;
+                    }
+                }
+                return result;
+            }
+        };
+        values[1] = new HashSet<HashSet<Long>>() {
+            @Override
+            public boolean contains(final Object o) {
+                if (super.contains(o)) return true;
+                final boolean[] result = new boolean[1];
+                Parallel.For(this, new Parallel.Operation<HashSet<Long>>() {
+                    @Override
+                    public void perform(HashSet<Long> pParameter) {
+                        if (pParameter.equals(o)) {
+                            synchronized (result) {
+                                result[0] = true;
+                            }
+                        }
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return !result[0];
+                    }
+                });
+                return result[0];
+            }
+
+            @Override
+            public boolean remove(Object o) {
+                if (super.remove(o)) return true;
+                boolean result = false;
+                Iterator<HashSet<Long>> iterator = this.iterator();
+                while (iterator.hasNext() && !result) {
+                    if (iterator.next().equals(o)) {
+                        iterator.remove();
+                        result = true;
+                    }
+                }
+                return result;
+            }
+        };
     }
 
     @Override
@@ -88,7 +160,9 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
             }
         };
         for (int arrayIndex=0;arrayIndex<values.length;arrayIndex++) {
-            Parallel.For(values[arrayIndex], operation);
+            if (!values[arrayIndex].isEmpty()) {
+                Parallel.For(values[arrayIndex], operation);
+            }
         }
         if (last[0] != null && last[0].isEmpty()) {
             if (values[0].contains(last[0])) {
@@ -332,7 +406,11 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
     @Override
     public final void add(@Nullable final Long pEntity) {
         if (this.isEmpty()) {
-            values[0].add(new HashSet<Long>(){{if (!add(pEntity)) throw new RuntimeException("The value has not been added");}});
+            values[0].add(new HashSet<Long>(){
+                {
+                    if (!add(pEntity)) throw new RuntimeException("The value has not been added");
+                }
+            });
             mSize++;
         } else {
             final boolean[] contain = new boolean[1];

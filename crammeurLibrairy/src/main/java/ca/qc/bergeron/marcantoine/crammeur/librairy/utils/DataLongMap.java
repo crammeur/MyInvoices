@@ -32,8 +32,80 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
         }
 
         public EntryLongSetIterator() {
-            values[0] = new HashSet<>();
-            values[1] = new HashSet<>();
+            values[0] = new HashSet<HashSet<Entry<Long,T>>>() {
+                @Override
+                public boolean contains(final java.lang.Object o) {
+                    if (super.contains(o)) return true;
+                    final boolean[] result = new boolean[1];
+                    Parallel.For(this, new Parallel.Operation<HashSet<Entry<Long,T>>>() {
+                        @Override
+                        public void perform(HashSet<Entry<Long, T>> pParameter) {
+                            if (pParameter.equals(o)) {
+                                synchronized (result) {
+                                    result[0] = true;
+                                }
+                            }
+                        }
+
+                        @Override
+                        public boolean follow() {
+                            return !result[0];
+                        }
+                    });
+                    return result[0];
+                }
+
+                @Override
+                public boolean remove(java.lang.Object o) {
+                    if (super.remove(o)) return true;
+                    boolean result = false;
+                    Iterator<HashSet<Entry<Long, T>>> iterator = this.iterator();
+                    while (iterator.hasNext() && !result) {
+                        if (iterator.next().equals(o)) {
+                            iterator.remove();
+                            result = true;
+                        }
+                    }
+                    return result;
+                }
+            };
+            values[1] = new HashSet<HashSet<Entry<Long,T>>>() {
+                @Override
+                public boolean contains(final java.lang.Object o) {
+                    if (super.contains(o)) return true;
+                    final boolean[] result = new boolean[1];
+                    Parallel.For(this, new Parallel.Operation<HashSet<Entry<Long,T>>>() {
+                        @Override
+                        public void perform(HashSet<Entry<Long, T>> pParameter) {
+                            if (pParameter.equals(o)) {
+                                synchronized (result) {
+                                    result[0] = true;
+                                }
+                            }
+                        }
+
+                        @Override
+                        public boolean follow() {
+                            return !result[0];
+                        }
+                    });
+                    return result[0];
+                }
+
+                @Override
+                public boolean remove(java.lang.Object o) {
+                    if (super.remove(o)) return true;
+                    boolean result = false;
+                    Iterator<HashSet<Entry<Long, T>>> iterator = this.iterator();
+                    while (iterator.hasNext() && !result) {
+                        if (iterator.next().equals(o)) {
+                            iterator.remove();
+                            result = true;
+                        }
+                    }
+                    return result;
+                }
+            };
         }
 
         @Override
