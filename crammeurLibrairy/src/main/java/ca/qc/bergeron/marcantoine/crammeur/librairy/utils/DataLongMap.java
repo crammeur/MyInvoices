@@ -3,10 +3,12 @@ package ca.qc.bergeron.marcantoine.crammeur.librairy.utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.Map;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.exceptions.ContainsException;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.lang.Object;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.KeySetIterator;
@@ -72,7 +74,7 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
 
         @NotNull
         @Override
-        public Iterable<Collection<Entry<Long, T>>> allCollections() {
+        public final Iterable<Collection<Entry<Long, T>>> allCollections() {
             return new Iterable<Collection<Entry<Long,T>>>() {
                 @NotNull
                 @Override
@@ -98,26 +100,39 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
                                 @Override
                                 public void perform(final Map<Long,T> pParameter) {
                                     if (mIndex == traveled[0]) {
-                                        synchronized (result) {
-                                            Collection<Entry<Long,T>> collection = new LinkedHashSet<>(pParameter.size());
-                                            for (final Long key : pParameter.keySet()) {
-                                                collection.add(new Entry<Long, T>() {
-                                                    @Override
-                                                    public Long getKey() {
-                                                        return key;
-                                                    }
+                                        final Collection<Entry<Long,T>> collection = new LinkedHashSet<>(pParameter.size());
+                                        Parallel.For(pParameter.keySet(), new Parallel.Operation<Long>() {
+                                            @Override
+                                            public void perform(final Long pParameter2) {
+                                                synchronized (collection) {
+                                                    collection.add(new Entry<Long, T>() {
 
-                                                    @Override
-                                                    public T getValue() {
-                                                        return pParameter.get(key);
-                                                    }
+                                                        final Long key = pParameter2;
 
-                                                    @Override
-                                                    public T setValue(T pValue) {
-                                                        return pParameter.put(key,pValue);
-                                                    }
-                                                });
+                                                        @Override
+                                                        public Long getKey() {
+                                                            return key;
+                                                        }
+
+                                                        @Override
+                                                        public T getValue() {
+                                                            return pParameter.get(key);
+                                                        }
+
+                                                        @Override
+                                                        public T setValue(T pValue) {
+                                                            return pParameter.put(key,pValue);
+                                                        }
+                                                    });
+                                                }
                                             }
+
+                                            @Override
+                                            public boolean follow() {
+                                                return true;
+                                            }
+                                        });
+                                        synchronized (result) {
                                             result[0] = collection;
                                         }
                                     }
@@ -436,7 +451,7 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
         }
 
         @Override
-        public final <E2 extends T> boolean retainAll(@NotNull EntryCollectionIterator<E2, Long> pEntryCollectionIterator) {
+        public final <E2 extends T> boolean retainAll(@NotNull final EntryCollectionIterator<E2, Long> pEntryCollectionIterator) {
             final boolean[] result = new boolean[1];
             result[0] = true;
             final EntrySetIterator<T, Long> retain = new EntryLongSetIterator();
@@ -446,9 +461,12 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
                     @Override
                     public void perform(final Entry<Long,E2> pParameter) {
                         retain.add(new Entry<Long, T>() {
+
+                            final Long key = pParameter.getKey();
+
                             @Override
                             public Long getKey() {
-                                return pParameter.getKey();
+                                return key;
                             }
 
                             @Override
@@ -456,10 +474,28 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
                                 return pParameter.getValue();
                             }
 
-                            @Deprecated
                             @Override
                             public T setValue(T pValue) {
-                                throw new UnsupportedOperationException();
+                                Map<Field, java.lang.Object> map = new HashMap<>();
+                                for (Field field : Object.getAllFields(pValue.getClass())) {
+                                    boolean b = field.isAccessible();
+                                    field.setAccessible(true);
+                                    try {
+                                        map.put(field,field.get(pValue));
+                                    } catch (IllegalAccessException e) {
+                                        e.printStackTrace();
+                                        throw new RuntimeException(e);
+                                    } finally {
+                                        field.setAccessible(b);
+                                    }
+                                }
+                                try {
+                                    E2 value = Object.changeObject(pParameter.getValue(),map);
+                                    return pParameter.setValue(value);
+                                } catch (IllegalAccessException e) {
+                                    e.printStackTrace();
+                                    throw new RuntimeException(e);
+                                }
                             }
                         });
                     }
@@ -772,19 +808,22 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
                     public void perform(final Long pParameter) {
                         synchronized (result) {
                             result.add(new Entry<Long, T>() {
+
+                                final Long key = pParameter;
+
                                 @Override
                                 public Long getKey() {
-                                    return pParameter;
+                                    return key;
                                 }
 
                                 @Override
                                 public T getValue() {
-                                    return DataLongMap.this.get(pParameter);
+                                    return DataLongMap.this.get(key);
                                 }
 
                                 @Override
                                 public T setValue(T pValue) {
-                                    return DataLongMap.this.put(pParameter,pValue);
+                                    return DataLongMap.this.put(key,pValue);
                                 }
                             });
                         }

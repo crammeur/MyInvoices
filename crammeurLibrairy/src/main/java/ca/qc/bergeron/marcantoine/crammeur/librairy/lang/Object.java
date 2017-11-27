@@ -9,6 +9,8 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.Values;
+
 /**
  * Created by Marc-Antoine on 2017-06-26.
  */
@@ -17,6 +19,13 @@ public class Object implements Serializable {
 
     private transient LinkedList<Field> resultGetAllFields = null;
     private transient LinkedList<Field> resultGetAllSerializableFields = null;
+
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+        resultGetAllFields = null;
+        resultGetAllSerializableFields = null;
+    }
 
     public static LinkedList<Field> getAllFields(Class<?> pType) {
         LinkedList<Field> fs = new LinkedList<Field>();
@@ -40,6 +49,34 @@ public class Object implements Serializable {
             fs.addAll(getAllSerializableFields(pType.getSuperclass()));
         }
         return fs;
+    }
+
+    public static <T> T createObject(Class<T> pClazz, Map<Field, java.lang.Object> pMap) throws IllegalAccessException, InstantiationException {
+        T result = pClazz.newInstance();
+        for (Field field : getAllFields(pClazz)) {
+            boolean b = field.isAccessible();
+            field.setAccessible(true);
+            if (pMap.containsKey(field)) {
+                field.set(result, pMap.get(field));
+            } else {
+                field.set(result, Values.defaultValueFor(field.getType()));
+            }
+            field.setAccessible(b);
+        }
+        return result;
+    }
+
+    public static <T> T changeObject(T pObject, Map<Field, java.lang.Object> pMap) throws IllegalAccessException {
+        T result = pObject;
+        for (Field field : getAllFields(result.getClass())) {
+            boolean b = field.isAccessible();
+            field.setAccessible(true);
+            if (pMap.containsKey(field)) {
+                field.set(result, pMap.get(field));
+            }
+            field.setAccessible(b);
+        }
+        return result;
     }
 
     public static <T extends Object> T fromMap(Class<T> pClass, Map<Field, java.lang.Object> pObject) throws IllegalAccessException, InstantiationException {
