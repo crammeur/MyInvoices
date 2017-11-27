@@ -44,7 +44,7 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
     }
 
     @Override
-    public boolean remove(@Nullable final Long pKey) {
+    public final boolean remove(@Nullable final Long pKey) {
         final boolean[] result = new boolean[1];
         final HashSet<Long>[] last = new HashSet[1];
         Parallel.Operation<HashSet<Long>> operation = new Parallel.Operation<HashSet<Long>>() {
@@ -91,14 +91,18 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
             Parallel.For(values[arrayIndex], operation);
         }
         if (last[0] != null && last[0].isEmpty()) {
-            if (values[values.length-1].remove(last[0])) throw new RuntimeException("The last empty HashSet has not been removed");
+            if (values[0].contains(last[0])) {
+                if (!values[0].remove(last[0])) throw new RuntimeException("The last empty HashSet has not been removed");
+            } else {
+                if (!values[1].remove(last[0])) throw new RuntimeException("The last empty HashSet has not been removed");
+            }
         }
 
         return result[0];
     }
 
     @Override
-    public <E extends Long> boolean retainAll(@NotNull CollectionIterator<E, Long> pKeyCollectionIterator) {
+    public final <E extends Long> boolean retainAll(@NotNull CollectionIterator<E, Long> pKeyCollectionIterator) {
         final boolean[] result = new boolean[1];
         result[0] = true;
         final KeyLongSetIterator retain = new KeyLongSetIterator();
@@ -153,7 +157,7 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
     }
 
     @Override
-    public void clear() {
+    public final void clear() {
         values[0].clear();
         values[1].clear();
         mIndex = NULL_INDEX;
@@ -178,7 +182,7 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
     @Override
     public final int collectionIndexOf(@NotNull Long pIndex) {
-        return (int) (pIndex % Integer.MAX_VALUE);
+        return (int) (pIndex % MAX_COLLECTION_SIZE);
     }
 
     @NotNull
@@ -208,9 +212,9 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
                     @Override
                     public Collection<Long> next() {
                         final Collection<Long>[] result = new Collection[1];
-                        final int arrayIndex = (int) (++mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
+                        final int arrayIndex = (int) (++mIndex / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
                         final long[] traveled = new long[1];
-                        traveled[0] = (arrayIndex == 1)? MAX_COLLECTION_INDEX:0;
+                        traveled[0] = (arrayIndex == 1)? MAX_COLLECTION_SIZE :0;
                         Parallel.For(values[arrayIndex], new Parallel.Operation<HashSet<Long>>() {
                             @Override
                             public void perform(HashSet<Long> pParameter) {
@@ -235,9 +239,9 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
                     @Override
                     public void remove() {
                         if (mIndex == NULL_INDEX) throw new IllegalStateException(String.valueOf(NULL_INDEX));
-                        final int arrayIndex = (int) (++mIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
+                        final int arrayIndex = (int) (++mIndex / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
                         final long[] traveled = new long[1];
-                        traveled[0] = (arrayIndex == 1)?MAX_COLLECTION_INDEX:0;
+                        traveled[0] = (arrayIndex == 1)? MAX_COLLECTION_SIZE :0;
                         final HashSet<Long>[] remove = new HashSet[1];
                         Parallel.For(values[arrayIndex], new Parallel.Operation<HashSet<Long>>() {
                             @Override
@@ -274,12 +278,12 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
     @NotNull
     @Override
-    public Set<Long> collectionOf(@NotNull Long pIndex) {
+    public final Set<Long> collectionOf(@NotNull Long pIndex) {
         if (pIndex < MIN_INDEX || pIndex >= mSize) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
         final Set<Long> result = new LinkedHashSet<>();
-        final int arrayIndex = (int) (pIndex / (((long) MAX_COLLECTION_INDEX + 1) * ((long) MAX_COLLECTION_INDEX + 1)));
-        long size = (arrayIndex == 1)?(long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX:0;
-        for (final Set<Long> set : values[arrayIndex]) {
+        final int arrayIndex = (int) (pIndex / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
+        long size = (arrayIndex == 1)?(long) MAX_COLLECTION_SIZE * MAX_COLLECTION_SIZE :0;
+        for (Set<Long> set : values[arrayIndex]) {
             size+=set.size();
             if (pIndex < size) {
                 Parallel.For(set, new Parallel.Operation<Long>() {
@@ -303,7 +307,7 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
     @NotNull
     @Override
-    public Long count(@Nullable final Long pEntity) {
+    public final Long count(@Nullable final Long pEntity) {
         final long[] result = new long[1];
         for (Collection<Long> collection : this.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<Long>() {
@@ -326,7 +330,7 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
     }
 
     @Override
-    public void add(@Nullable final Long pEntity) {
+    public final void add(@Nullable final Long pEntity) {
         if (this.isEmpty()) {
             values[0].add(new HashSet<Long>(){{if (!add(pEntity)) throw new RuntimeException("The value has not been added");}});
             mSize++;
@@ -386,8 +390,8 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
     }
 
     protected final Long actual() {
-        if (mIndex != NULL_INDEX && mIndex < mSize) {
-            final int arrayIndex = (int) (mIndex / ((long) MAX_COLLECTION_INDEX * MAX_COLLECTION_INDEX));
+        if (mIndex < MIN_INDEX && mIndex < mSize) {
+            final int arrayIndex = (int) (mIndex / ((long) MAX_COLLECTION_SIZE * MAX_COLLECTION_SIZE));
             final Long[] result = new Long[1];
             final long[] index = new long[1];
             index[0] = NULL_INDEX;

@@ -15,8 +15,7 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterable<
 
     int NULL_INDEX = -1;
     int MIN_INDEX = 0;
-    int MAX_COLLECTION_INDEX = Integer.MAX_VALUE;
-
+    int MAX_COLLECTION_SIZE = Integer.MAX_VALUE;
     @NotNull
     S size();
 

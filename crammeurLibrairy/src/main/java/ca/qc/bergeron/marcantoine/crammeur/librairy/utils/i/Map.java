@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
+import java.util.Set;
 
 /**
  * Created by Marc-Antoine on 2017-11-23.
@@ -24,7 +25,7 @@ public interface Map<K extends Serializable, V> {
 
     V remove(K pKey);
 
-    void putAll(@NotNull Map<? extends K, ? extends V> pMap);
+    <K2 extends K, V2 extends V> void putAll(@NotNull Map<K2, V2> pMap);
 
     void clear();
 
@@ -32,7 +33,7 @@ public interface Map<K extends Serializable, V> {
 
     CollectionIterator<V, K> values();
 
-    EntrySetIterator<Entry<K, V>, V, K> entrySet();
+    EntrySetIterator<V, K> entrySet();
 
     boolean equals(@Nullable Map<K, V> pMap);
 
@@ -46,21 +47,30 @@ public interface Map<K extends Serializable, V> {
 
     }
 
-    interface EntryCollectionIterator<E extends Entry<K, T>, T, K extends Serializable> extends CollectionIterator<E,K> {
+    interface EntryCollectionIterator<T, K extends Serializable> extends CollectionIterator<Entry<K,T>,K> {
 
-        boolean equals(@NotNull EntryCollectionIterator<E, T, K> pEntryCollectionIterator);
+        boolean equals(@Nullable EntryCollectionIterator<T, K> pEntryCollectionIterator);
 
-        boolean remove(@Nullable E pEntry);
+        boolean remove(@Nullable Entry<K,T> pEntry);
 
-        <E2 extends T> boolean removeAll(@NotNull EntryCollectionIterator<Entry<K,E2>, E2, K> pEntryCollectionIterator);
+        <E2 extends T> boolean removeAll(@NotNull EntryCollectionIterator<E2, K> pEntryCollectionIterator);
 
-        <E2 extends T> boolean retainAll(@NotNull EntryCollectionIterator<Entry<K,E2>, E2, K> pEntryCollectionIterator);
+        <E2 extends T> boolean retainAll(@NotNull EntryCollectionIterator<E2, K> pEntryCollectionIterator);
 
         void clear();
 
     }
 
-    interface EntrySetIterator<E extends Entry<K, T>, T, K extends Serializable> extends EntryCollectionIterator<E, T, K> {
-        boolean equals(@NotNull EntrySetIterator<E, T, K> pEntrySetIterator);
+    interface EntrySetIterator<T, K extends Serializable> extends EntryCollectionIterator<T, K> {
+
+        @NotNull
+        @Override
+        Set<Entry<K, T>> currentCollection();
+
+        @NotNull
+        @Override
+        Set<Entry<K, T>> collectionOf(@NotNull K pIndex);
+
+        boolean equals(@Nullable EntrySetIterator<T, K> pEntrySetIterator);
     }
 }

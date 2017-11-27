@@ -118,12 +118,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
                 return follow;
             }
         };
-        for (Collection<T> collection : this.allCollections()) {
-            Parallel.For(collection, operation);
-            if (result[0] != NULL_INDEX) {
-                break;
-            }
-        }
+        Parallel.For(this.currentCollection(), operation);
         return result[0];
     }
 
@@ -160,9 +155,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
                 return true;
             }
         };
-        for (Collection<T> collection : this.allCollections()) {
-            Parallel.For(collection, operation);
-        }
+        Parallel.For(this.currentCollection(), operation);
         return result[0];
     }
 
@@ -172,6 +165,11 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
         return values;
     }
 
+    /**
+     * Use currentCollection
+     * @return
+     */
+    @Deprecated
     @NotNull
     @Override
     public final Iterable<Collection<T>> allCollections() {
@@ -198,10 +196,16 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
         };
     }
 
+    /**
+     * Use currentCollection
+     * @param pIndex
+     * @return
+     */
+    @Deprecated
     @NotNull
     @Override
     public final List<T> collectionOf(@NotNull Integer pIndex) {
-        if (pIndex > values.size() - 1) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
+        if (pIndex < MIN_INDEX || pIndex > values.size() - 1) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
         return values;
     }
 
@@ -320,38 +324,34 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
         }
 
         final DataIntegerListIterator<T> delete = new DataIntegerListIterator<>();
-        for (Collection<T> collection : this.allCollections()) {
-            Parallel.For(collection, new Parallel.Operation<T>() {
-                @Override
-                public void perform(T pParameter) {
-                    if (!retain.contains(pParameter)){
-                        if (!delete.addAtEnd(pParameter)) throw new RuntimeException("The value has not been added");
-                    }
+        Parallel.For(this.currentCollection(), new Parallel.Operation<T>() {
+            @Override
+            public void perform(T pParameter) {
+                if (!retain.contains(pParameter)){
+                    if (!delete.addAtEnd(pParameter)) throw new RuntimeException("The value has not been added");
                 }
+            }
 
-                @Override
-                public boolean follow() {
-                    return false;
+            @Override
+            public boolean follow() {
+                return false;
+            }
+        });
+
+        Parallel.For(this.currentCollection(), new Parallel.Operation<T>() {
+
+            @Override
+            public void perform(T pParameter) {
+                synchronized (result) {
+                    result[0] = DataIntegerListIterator.this.remove(pParameter);
                 }
-            });
-        }
+            }
 
-        for (Collection<T> collection : delete.allCollections()) {
-            Parallel.For(collection, new Parallel.Operation<T>() {
-
-                @Override
-                public void perform(T pParameter) {
-                    synchronized (result) {
-                        result[0] = DataIntegerListIterator.this.remove(pParameter);
-                    }
-                }
-
-                @Override
-                public boolean follow() {
-                    return result[0];
-                }
-            });
-        }
+            @Override
+            public boolean follow() {
+                return result[0];
+            }
+        });
 
         return result[0];
     }
@@ -403,9 +403,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
                 return follow;
             }
         };
-        for (Collection<T> collection : this.allCollections()) {
-            Parallel.For(collection, operation);
-        }
+        Parallel.For(this.currentCollection(), operation);
         return result;
     }
 
@@ -425,6 +423,11 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
         return mIndex;
     }
 
+    /**
+     * Return pIndex
+     * @param pIndex Index
+     * @return pIndex
+     */
     @Deprecated
     @Override
     public final int collectionIndexOf(@NotNull Integer pIndex) {

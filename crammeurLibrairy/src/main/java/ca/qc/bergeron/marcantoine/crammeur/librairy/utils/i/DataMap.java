@@ -10,5 +10,5 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
 
 public interface DataMap<K extends Serializable, V extends Data<K>> extends Map<K,V> {
 
-
+    V put (V pData);
 }

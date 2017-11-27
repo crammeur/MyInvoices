@@ -51,9 +51,15 @@ public final class KeyIntegerSetIterator extends KeySetIterator<Integer> {
         return mIndex;
     }
 
+    /**
+     * Return pIndex
+     * @param pIndex Index
+     * @return
+     */
     @Deprecated
     @Override
     public int collectionIndexOf(@NotNull Integer pIndex) {
+        if (pIndex < MIN_INDEX || pIndex > values.size() - 1) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
         return pIndex;
     }
 
@@ -63,6 +69,11 @@ public final class KeyIntegerSetIterator extends KeySetIterator<Integer> {
         return values;
     }
 
+    /**
+     * Use currentCollection
+     * @return
+     */
+    @Deprecated
     @NotNull
     @Override
     public final Iterable<Collection<Integer>> allCollections() {
@@ -90,6 +101,11 @@ public final class KeyIntegerSetIterator extends KeySetIterator<Integer> {
         };
     }
 
+    /**
+     * Use currentCollection
+     * @param pIndex
+     * @return
+     */
     @Deprecated
     @NotNull
     @Override
@@ -231,37 +247,33 @@ public final class KeyIntegerSetIterator extends KeySetIterator<Integer> {
         }
 
         final KeyIntegerSetIterator delete = new KeyIntegerSetIterator();
-        for (Collection<Integer> collection : this.allCollections()) {
-            Parallel.For(collection, new Parallel.Operation<Integer>() {
-                @Override
-                public void perform(Integer pParameter) {
-                    if (!retain.contains(pParameter)) {
-                        delete.add(pParameter);
-                    }
+        Parallel.For(this.currentCollection(), new Parallel.Operation<Integer>() {
+            @Override
+            public void perform(Integer pParameter) {
+                if (!retain.contains(pParameter)) {
+                    delete.add(pParameter);
                 }
+            }
 
-                @Override
-                public boolean follow() {
-                    return true;
-                }
-            });
-        }
+            @Override
+            public boolean follow() {
+                return true;
+            }
+        });
 
-        for (Collection<Integer> collection : delete.allCollections()) {
-            Parallel.For(collection, new Parallel.Operation<Integer>() {
-                @Override
-                public void perform(Integer pParameter) {
-                    synchronized (result) {
-                        result[0] = KeyIntegerSetIterator.this.remove(pParameter);
-                    }
+        Parallel.For(delete.currentCollection(), new Parallel.Operation<Integer>() {
+            @Override
+            public void perform(Integer pParameter) {
+                synchronized (result) {
+                    result[0] = KeyIntegerSetIterator.this.remove(pParameter);
                 }
+            }
 
-                @Override
-                public boolean follow() {
-                    return result[0];
-                }
-            });
-        }
+            @Override
+            public boolean follow() {
+                return result[0];
+            }
+        });
         return result[0];
     }
 
