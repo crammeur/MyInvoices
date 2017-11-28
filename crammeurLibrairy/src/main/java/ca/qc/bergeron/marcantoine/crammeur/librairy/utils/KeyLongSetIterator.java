@@ -35,7 +35,6 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
         values[0] = new HashSet<HashSet<Long>>() {
             @Override
             public boolean contains(final Object o) {
-                if (super.contains(o)) return true;
                 final boolean[] result = new boolean[1];
                 Parallel.For(this, new Parallel.Operation<HashSet<Long>>() {
                     @Override
@@ -57,7 +56,6 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
             @Override
             public boolean remove(final Object o) {
-                if (super.remove(o)) return true;
                 final boolean[] result = new boolean[1];
                 final Iterator<HashSet<Long>> iterator = this.iterator();
                 ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);

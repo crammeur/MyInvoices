@@ -94,6 +94,7 @@ public final class KeyIntegerSetIterator extends KeySetIterator<Integer> {
 
                     @Override
                     public Collection<Integer> next() {
+                        mIndex++;
                         return values;
                     }
                 };

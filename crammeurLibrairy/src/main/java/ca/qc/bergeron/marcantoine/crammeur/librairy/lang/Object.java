@@ -20,7 +20,7 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.Values;
  * Created by Marc-Antoine on 2017-06-26.
  */
 
-public class Object implements Serializable {
+public abstract class Object implements Serializable {
 
     private transient LinkedList<Field> resultGetAllFields = null;
     private transient LinkedList<Field> resultGetAllSerializableFields = null;
@@ -135,7 +135,7 @@ public class Object implements Serializable {
     }
 
     public static <T> T updateObject(@NotNull final T pObject, @NotNull final Map<Field, java.lang.Object> pMap) throws IllegalAccessException {
-        for (Field field : getAllFields(pObject.getClass())) {
+        for (final Field field : getAllFields(pObject.getClass())) {
             final boolean b = field.isAccessible();
             try {
                 field.setAccessible(true);
@@ -149,9 +149,9 @@ public class Object implements Serializable {
         return pObject;
     }
 
-    public static String toGenericString(Class<?> pClass, java.lang.Object pObject) {
-        StringBuffer sb = new StringBuffer(pClass.getSimpleName() + "{");
-        Field[] fields = pClass.getDeclaredFields();
+    public static String toGenericString(final Class<?> pClass, final java.lang.Object pObject) {
+        final StringBuffer sb = new StringBuffer(pClass.getSimpleName() + "{");
+        final Field[] fields = pClass.getDeclaredFields();
         for (int index = 0; index < fields.length; index++) {
             if (!Modifier.isTransient(fields[index].getModifiers()) && (!Modifier.isStatic(fields[index].getModifiers()) && !Modifier.isFinal(fields[index].getModifiers()))) {
                 final boolean b = fields[index].isAccessible();
@@ -198,7 +198,7 @@ public class Object implements Serializable {
     @NotNull
     public Map<Field, java.lang.Object> toMap() {
         final Map<Field, java.lang.Object> result = new HashMap<Field, java.lang.Object>();
-        for (Field f : this.getAllFields()) {
+        for (final Field f : this.getAllFields()) {
             try {
                 result.put(f, f.get(this));
             } catch (IllegalAccessException e) {
@@ -222,8 +222,8 @@ public class Object implements Serializable {
     }
 
     @Override
-    public boolean equals(java.lang.Object pObject) {
-        return (pObject != null && this.toString().equals(pObject.toString()));
+    public boolean equals(final java.lang.Object pObject) {
+        return (pObject != null && (this.toString().equals(pObject.toString()) || this.getAddress().equals(pObject.toString())));
     }
 
     @Override

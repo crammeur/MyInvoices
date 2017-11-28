@@ -37,7 +37,6 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
             values[0] = new HashSet<HashSet<Entry<Long,T>>>() {
                 @Override
                 public boolean contains(final java.lang.Object o) {
-                    if (super.contains(o)) return true;
                     final boolean[] result = new boolean[1];
                     Parallel.For(this, new Parallel.Operation<HashSet<Entry<Long,T>>>() {
                         @Override
@@ -95,7 +94,6 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
             values[1] = new HashSet<HashSet<Entry<Long,T>>>() {
                 @Override
                 public boolean contains(final java.lang.Object o) {
-                    if (super.contains(o)) return true;
                     final boolean[] result = new boolean[1];
                     Parallel.For(this, new Parallel.Operation<HashSet<Entry<Long,T>>>() {
                         @Override
@@ -680,7 +678,6 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
         values[0] = new HashSet<Map<Long,T>>() {
             @Override
             public boolean contains(final java.lang.Object o) {
-                if (super.contains(o)) return true;
                 final boolean[] result = new boolean[1];
                 Parallel.For(this, new Parallel.Operation<Map<Long,T>>() {
                     @Override
@@ -738,7 +735,6 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
         values[1] = new HashSet<Map<Long, T>>() {
             @Override
             public boolean contains(final java.lang.Object o) {
-                if (super.contains(o)) return true;
                 final boolean[] result = new boolean[1];
                 Parallel.For(this, new Parallel.Operation<Map<Long,T>>() {
                     @Override

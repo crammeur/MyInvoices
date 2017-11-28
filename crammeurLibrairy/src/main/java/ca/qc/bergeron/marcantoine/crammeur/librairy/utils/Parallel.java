@@ -22,7 +22,7 @@ public final class Parallel {
         final Runnable runnable = new Runnable() {
             final Callable<Void> callable = new Callable<Void>() {
                 @Override
-                public Void call() throws Exception {
+                public final Void call() throws Exception {
                     T result;
                     synchronized (iterator) {
                         result = iterator.next();
@@ -32,7 +32,7 @@ public final class Parallel {
                 }
             };
             @Override
-            public void run() {
+            public final void run() {
                 while (iterator.hasNext()) {
                     try {
                         synchronized (operation) {
@@ -76,14 +76,14 @@ public final class Parallel {
         final Runnable runnable = new Runnable() {
             final Callable<Void> callable = new Callable<Void>() {
                 @Override
-                public Void call() throws Exception {
+                public final Void call() throws Exception {
                     T result = elements[index[0]];
                     operation.perform(result);
                     return null;
                 }
             };
             @Override
-            public void run() {
+            public final void run() {
                 while (index[0] < elements.length) {
                     try {
                         synchronized (operation) {
@@ -130,7 +130,7 @@ public final class Parallel {
         final Runnable runnable = new Runnable() {
             final Callable<Void> callable = new Callable<Void>() {
                 @Override
-                public Void call() throws Exception {
+                public final Void call() throws Exception {
                     T result;
                     synchronized (iterator) {
                         result = iterator.next();
@@ -140,7 +140,7 @@ public final class Parallel {
                 }
             };
             @Override
-            public void run() {
+            public final void run() {
                 while (iterator.hasNext()) {
                     try {
                         synchronized (operation) {
