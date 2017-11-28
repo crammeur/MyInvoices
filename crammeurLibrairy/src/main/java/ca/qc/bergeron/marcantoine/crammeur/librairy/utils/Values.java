@@ -8,31 +8,31 @@ import java.util.Map;
  */
 
 public final class Values {
-    private static final Map<Class<?>, Object> defaultValues = new HashMap<>();
+    public static final Map<Class<?>, Object> DEFAULT_VALUES = new HashMap<>();
 
     // load
     static {
-        defaultValues.put(boolean.class, Boolean.FALSE);
-        defaultValues.put(byte.class, (byte) 0);
-        defaultValues.put(short.class, (short) 0);
-        defaultValues.put(int.class, 0);
-        defaultValues.put(long.class, 0L);
-        defaultValues.put(char.class, '\0');
-        defaultValues.put(float.class, 0.0F);
-        defaultValues.put(double.class, 0.0);
-        defaultValues.put(Boolean.class, Boolean.FALSE);
-        defaultValues.put(Byte.class, (byte) 0);
-        defaultValues.put(Short.class, (short) 0);
-        defaultValues.put(Integer.class, 0);
-        defaultValues.put(Long.class, 0L);
-        defaultValues.put(Character.class, '\0');
-        defaultValues.put(Float.class, 0.0F);
-        defaultValues.put(Double.class, 0.0);
+        DEFAULT_VALUES.put(boolean.class, Boolean.FALSE);
+        DEFAULT_VALUES.put(byte.class, (byte) 0);
+        DEFAULT_VALUES.put(short.class, (short) 0);
+        DEFAULT_VALUES.put(int.class, 0);
+        DEFAULT_VALUES.put(long.class, 0L);
+        DEFAULT_VALUES.put(char.class, '\0');
+        DEFAULT_VALUES.put(float.class, 0.0F);
+        DEFAULT_VALUES.put(double.class, 0.0);
+        DEFAULT_VALUES.put(Boolean.class, Boolean.FALSE);
+        DEFAULT_VALUES.put(Byte.class, (byte) 0);
+        DEFAULT_VALUES.put(Short.class, (short) 0);
+        DEFAULT_VALUES.put(Integer.class, 0);
+        DEFAULT_VALUES.put(Long.class, 0L);
+        DEFAULT_VALUES.put(Character.class, '\0');
+        DEFAULT_VALUES.put(Float.class, 0.0F);
+        DEFAULT_VALUES.put(Double.class, 0.0);
     }
 
     public static <T> T defaultValueFor(Class<T> clazz) {
-        if (!defaultValues.containsKey(clazz)) return null;
-        return (T) defaultValues.get(clazz);
+        if (!DEFAULT_VALUES.containsKey(clazz)) return null;
+        return (T) DEFAULT_VALUES.get(clazz);
     }
 
 }

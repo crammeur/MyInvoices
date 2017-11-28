@@ -606,7 +606,7 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
                                     }
                                 }
                                 try {
-                                    E2 value = Object.changeObject(pParameter.getValue(),map);
+                                    E2 value = Object.updateObject(pParameter.getValue(),map);
                                     return pParameter.setValue(value);
                                 } catch (IllegalAccessException e) {
                                     e.printStackTrace();

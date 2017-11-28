@@ -1,7 +1,12 @@
 package ca.qc.bergeron.marcantoine.crammeur.librairy.lang;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.io.Serializable;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -27,18 +32,16 @@ public class Object implements Serializable {
         resultGetAllSerializableFields = null;
     }
 
-    public static LinkedList<Field> getAllFields(Class<?> pType) {
+    public static LinkedList<Field> getAllFields(final Class<?> pType) {
         LinkedList<Field> fs = new LinkedList<Field>();
-        for (Field f : Arrays.asList(pType.getDeclaredFields())) {
-            fs.add(f);
-        }
+        fs.addAll(Arrays.asList(pType.getDeclaredFields()));
         if (pType.getSuperclass() != null) {
             fs.addAll(getAllFields(pType.getSuperclass()));
         }
         return fs;
     }
 
-    public static LinkedList<Field> getAllSerializableFields(Class<?> pType) {
+    public static LinkedList<Field> getAllSerializableFields(final Class<?> pType) {
         LinkedList<Field> fs = new LinkedList<Field>();
         for (Field f : Arrays.asList(pType.getDeclaredFields())) {
             if (!Modifier.isTransient(f.getModifiers()) && (!Modifier.isStatic(f.getModifiers()) && !Modifier.isFinal(f.getModifiers()))) {
@@ -51,63 +54,126 @@ public class Object implements Serializable {
         return fs;
     }
 
-    public static <T> T createObject(Class<T> pClazz, Map<Field, java.lang.Object> pMap) throws IllegalAccessException, InstantiationException {
-        T result = pClazz.newInstance();
-        for (Field field : getAllFields(pClazz)) {
-            boolean b = field.isAccessible();
-            field.setAccessible(true);
-            if (pMap.containsKey(field)) {
-                field.set(result, pMap.get(field));
+    public static <T> T createObject(@NotNull final Class<T> pClazz, @Nullable final Map<Field, java.lang.Object> pMap) throws IllegalAccessException, InstantiationException, InvocationTargetException {
+        T result = null;
+        Constructor constructor = null;
+        for (Constructor c : pClazz.getConstructors()) {
+            if (constructor == null || constructor.getParameterTypes().length > c.getParameterTypes().length) {
+                constructor = c;
+                if (constructor.getParameterTypes().length == 0) break;
+            }
+        }
+        if (constructor != null) {
+            if (constructor.getParameterTypes().length == 0) {
+                result = (T) constructor.newInstance();
             } else {
-                field.set(result, Values.defaultValueFor(field.getType()));
+                final Class<?>[] clazzs = constructor.getParameterTypes();
+                final java.lang.Object[] params = new java.lang.Object[clazzs.length];
+                for (int arrayIndex = 0; arrayIndex<clazzs.length; arrayIndex++) {
+                    params[arrayIndex] = Values.defaultValueFor(clazzs[arrayIndex]);
+                }
+                result = (T) constructor.newInstance(params);
             }
-            field.setAccessible(b);
+            if (pMap != null) {
+                Class<?> clazz = pClazz;
+                Field[] fields;
+                do {
+                    fields = clazz.getDeclaredFields();
+                    for (Field field : fields) {
+                        if (pMap.containsKey(field)) {
+                            final boolean b = field.isAccessible();
+                            try {
+                                field.setAccessible(true);
+                                field.set(result,pMap.get(field));
+                            } finally {
+                                field.setAccessible(b);
+                            }
+                        }
+                    }
+                } while ((clazz = clazz.getSuperclass()) != null);
+            }
         }
         return result;
     }
 
-    public static <T> T changeObject(T pObject, Map<Field, java.lang.Object> pMap) throws IllegalAccessException {
-        T result = pObject;
-        for (Field field : getAllFields(result.getClass())) {
-            boolean b = field.isAccessible();
-            field.setAccessible(true);
-            if (pMap.containsKey(field)) {
-                field.set(result, pMap.get(field));
+    public static <T> T cloneObject(@NotNull final T pObject) throws IllegalAccessException, InvocationTargetException, InstantiationException {
+        T result = null;
+        Constructor constructor = null;
+        for (Constructor c : pObject.getClass().getConstructors()) {
+            if (constructor == null || constructor.getParameterTypes().length > c.getParameterTypes().length) {
+                constructor = c;
+                if (constructor.getParameterTypes().length == 0) break;
             }
-            field.setAccessible(b);
+        }
+        if (constructor != null) {
+            if (constructor.getParameterTypes().length == 0) {
+                result = (T) constructor.newInstance();
+            } else {
+                final Class<?>[] clazzs = constructor.getParameterTypes();
+                final java.lang.Object[] params = new java.lang.Object[clazzs.length];
+                for (int arrayIndex = 0; arrayIndex<clazzs.length && arrayIndex<params.length; arrayIndex++) {
+                    params[arrayIndex] = Values.defaultValueFor(clazzs[arrayIndex]);
+                }
+                result = (T) constructor.newInstance(params);
+            }
+            Class<?> clazz = pObject.getClass();
+            Field[] fields;
+            do {
+                fields = clazz.getDeclaredFields();
+                for (Field field : fields) {
+                    final boolean b = field.isAccessible();
+                    try {
+                        field.setAccessible(true);
+                        field.set(result,field.get(pObject));
+                    } finally {
+                        field.setAccessible(b);
+                    }
+                }
+            } while ((clazz = clazz.getSuperclass()) != null);
         }
         return result;
     }
 
-    public static <T extends Object> T fromMap(Class<T> pClass, Map<Field, java.lang.Object> pObject) throws IllegalAccessException, InstantiationException {
-        T result = pClass.newInstance();
-        for (Field f : result.getAllFields()) {
-            f.set(result, pObject.get(f));
+    public static <T> T updateObject(@NotNull final T pObject, @NotNull final Map<Field, java.lang.Object> pMap) throws IllegalAccessException {
+        for (Field field : getAllFields(pObject.getClass())) {
+            final boolean b = field.isAccessible();
+            try {
+                field.setAccessible(true);
+                if (pMap.containsKey(field)) {
+                    field.set(pObject, pMap.get(field));
+                }
+            } finally {
+                field.setAccessible(b);
+            }
         }
-        return result;
+        return pObject;
     }
 
     public static String toGenericString(Class<?> pClass, java.lang.Object pObject) {
         StringBuffer sb = new StringBuffer(pClass.getSimpleName() + "{");
         Field[] fields = pClass.getDeclaredFields();
         for (int index = 0; index < fields.length; index++) {
-            if (!Modifier.isTransient(fields[index].getModifiers()) && (!Modifier.isStatic(fields[index].getModifiers()) && !Modifier.isFinal(fields[index].getModifiers())))
+            if (!Modifier.isTransient(fields[index].getModifiers()) && (!Modifier.isStatic(fields[index].getModifiers()) && !Modifier.isFinal(fields[index].getModifiers()))) {
+                final boolean b = fields[index].isAccessible();
                 try {
                     if (sb.toString().lastIndexOf("{") != sb.toString().length() - 1 && sb.toString().lastIndexOf(", ") != sb.toString().length() - 1) {
                         sb.append(", ");
                     }
-                    final boolean b = fields[index].isAccessible();
+
                     fields[index].setAccessible(true);
                     sb.append(fields[index].getName() + "=");
                     if (String.class.isAssignableFrom(fields[index].getType())) {
                         sb.append("'" + fields[index].get(pObject) + "'");
                     } else
                         sb.append(fields[index].get(pObject));
-                    fields[index].setAccessible(b);
+
                 } catch (IllegalAccessException e) {
                     e.printStackTrace();
                     throw new RuntimeException(e);
+                } finally {
+                    fields[index].setAccessible(b);
                 }
+            }
         }
         if (pClass.getSuperclass() != null) {
             sb.append("} ");
@@ -129,8 +195,9 @@ public class Object implements Serializable {
         return resultGetAllSerializableFields;
     }
 
+    @NotNull
     public Map<Field, java.lang.Object> toMap() {
-        Map<Field, java.lang.Object> result = new HashMap<Field, java.lang.Object>();
+        final Map<Field, java.lang.Object> result = new HashMap<Field, java.lang.Object>();
         for (Field f : this.getAllFields()) {
             try {
                 result.put(f, f.get(this));
@@ -143,7 +210,7 @@ public class Object implements Serializable {
     }
 
     /**
-     * @return
+     * @return java.lang.Object.class.toString() (Object Address)
      */
     public final String getAddress() {
         return java.lang.Object.class.toString();
@@ -161,7 +228,7 @@ public class Object implements Serializable {
 
     @Override
     public int hashCode() {
-        java.lang.Object[] result = new Object[this.getAllFields().size()];
+        final java.lang.Object[] result = new Object[this.getAllFields().size()];
         for (int i = 0; i < result.length; i++) {
             try {
                 Field f = this.getAllFields().get(i);

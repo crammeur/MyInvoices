@@ -28,7 +28,7 @@ abstract class EntryCollectionIterator<T, S extends Serializable> extends Collec
                 public void perform(final Map.Entry<S, E2> pParameter) {
                     if (!EntryCollectionIterator.this.remove(new Map.Entry<S, T>() {
 
-                        S key = pParameter.getKey();
+                        final S key = pParameter.getKey();
 
                         @Override
                         public S getKey() {
@@ -39,7 +39,7 @@ abstract class EntryCollectionIterator<T, S extends Serializable> extends Collec
                         public T getValue() {
                             return pParameter.getValue();
                         }
-                        
+
                         @Override
                         public T setValue(T pValue) {
                             java.util.Map<Field, java.lang.Object> map = new HashMap<>();
@@ -56,7 +56,7 @@ abstract class EntryCollectionIterator<T, S extends Serializable> extends Collec
                                 }
                             }
                             try {
-                                E2 value = Object.changeObject(pParameter.getValue(),map);
+                                E2 value = Object.updateObject(pParameter.getValue(),map);
                                 return pParameter.setValue(value);
                             } catch (IllegalAccessException e) {
                                 e.printStackTrace();

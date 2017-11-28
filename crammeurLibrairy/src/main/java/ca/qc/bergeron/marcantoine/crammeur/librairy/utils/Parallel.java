@@ -70,6 +70,57 @@ public final class Parallel {
         }
     }
 
+    public static <T> void For(final T[] elements, final Operation<T> operation) {
+        ExecutorService executor = Executors.newFixedThreadPool(MAX_THREAD);
+        final int[] index = new int[1];
+        final Runnable runnable = new Runnable() {
+            final Callable<Void> callable = new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    T result = elements[index[0]];
+                    operation.perform(result);
+                    return null;
+                }
+            };
+            @Override
+            public void run() {
+                while (index[0] < elements.length) {
+                    try {
+                        synchronized (operation) {
+                            if (operation.follow()) {
+                                synchronized (callable) {
+                                    callable.call();
+                                }
+                                if (!operation.follow()) {
+                                    break;
+                                }
+                            } else {
+                                break;
+                            }
+                        }
+                    } catch (NoSuchElementException e) {
+                        break;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        };
+        for (int threadIndex=0; threadIndex<MAX_THREAD; threadIndex++) {
+            executor.execute(runnable);
+        }
+        executor.shutdown();
+        while (!executor.isTerminated()) {
+            try {
+                Thread.sleep(0,1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     public static <T> void For(final Iterable<T> elements, final Operation<T> operation) {
         ExecutorService executor = Executors.newFixedThreadPool(MAX_THREAD);
         final Iterator<T> iterator = elements.iterator();

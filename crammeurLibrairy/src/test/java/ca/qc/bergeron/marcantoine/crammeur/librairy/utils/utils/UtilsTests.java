@@ -1,4 +1,4 @@
-package ca.qc.bergeron.marcantoine.crammeur.librairy.utils;
+package ca.qc.bergeron.marcantoine.crammeur.librairy.utils.utils;
 
 import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
@@ -10,6 +10,11 @@ import java.util.concurrent.Executors;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.exceptions.ContainsException;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.DataIntegerListIterator;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.DataLongListIterator;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.KeyLongSetIterator;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.KeySetIterator;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.Parallel;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator;
 
 /**
