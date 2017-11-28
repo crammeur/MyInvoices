@@ -91,6 +91,9 @@ public final class Parallel {
                                 synchronized (callable) {
                                     callable.call();
                                 }
+                                synchronized (index) {
+                                    index[0]++;
+                                }
                                 if (!operation.follow()) {
                                     break;
                                 }
