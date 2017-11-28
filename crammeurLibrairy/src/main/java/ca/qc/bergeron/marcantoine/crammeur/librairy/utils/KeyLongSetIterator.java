@@ -9,6 +9,8 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.exceptions.ContainsException;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator;
@@ -54,23 +56,44 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
             }
 
             @Override
-            public boolean remove(Object o) {
+            public boolean remove(final Object o) {
                 if (super.remove(o)) return true;
-                boolean result = false;
-                Iterator<HashSet<Long>> iterator = this.iterator();
-                while (iterator.hasNext() && !result) {
-                    if (iterator.next().equals(o)) {
-                        iterator.remove();
-                        result = true;
+                final boolean[] result = new boolean[1];
+                final Iterator<HashSet<Long>> iterator = this.iterator();
+                ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
+                Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        while (iterator.hasNext() && !result[0]) {
+                            if (iterator.next().equals(o)) {
+                                synchronized (iterator) {
+                                    iterator.remove();
+                                }
+                                synchronized (result) {
+                                    result[0] = true;
+                                }
+                            }
+                        }
+                    }
+                };
+                for (int thread=0; thread<Runtime.getRuntime().availableProcessors()*2; thread++) {
+                    executorService.execute(runnable);
+                }
+                executorService.shutdown();
+                while (!executorService.isTerminated()) {
+                    try {
+                        Thread.sleep(0,1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
                     }
                 }
-                return result;
+                return result[0];
             }
         };
         values[1] = new HashSet<HashSet<Long>>() {
             @Override
             public boolean contains(final Object o) {
-                if (super.contains(o)) return true;
                 final boolean[] result = new boolean[1];
                 Parallel.For(this, new Parallel.Operation<HashSet<Long>>() {
                     @Override
@@ -91,17 +114,38 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
             }
 
             @Override
-            public boolean remove(Object o) {
-                if (super.remove(o)) return true;
-                boolean result = false;
-                Iterator<HashSet<Long>> iterator = this.iterator();
-                while (iterator.hasNext() && !result) {
-                    if (iterator.next().equals(o)) {
-                        iterator.remove();
-                        result = true;
+            public boolean remove(final Object o) {
+                final boolean[] result = new boolean[1];
+                final Iterator<HashSet<Long>> iterator = this.iterator();
+                ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
+                Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        while (iterator.hasNext() && !result[0]) {
+                            if (iterator.next().equals(o)) {
+                                synchronized (iterator) {
+                                    iterator.remove();
+                                }
+                                synchronized (result) {
+                                    result[0] = true;
+                                }
+                            }
+                        }
+                    }
+                };
+                for (int thread=0; thread<Runtime.getRuntime().availableProcessors()*2; thread++) {
+                    executorService.execute(runnable);
+                }
+                executorService.shutdown();
+                while (!executorService.isTerminated()) {
+                    try {
+                        Thread.sleep(0,1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
                     }
                 }
-                return result;
+                return result[0];
             }
         };
     }

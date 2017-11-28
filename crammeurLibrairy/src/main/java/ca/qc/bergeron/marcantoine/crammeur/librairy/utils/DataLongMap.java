@@ -6,6 +6,8 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.exceptions.ContainsException;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.lang.Object;
@@ -56,17 +58,38 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
                 }
 
                 @Override
-                public boolean remove(java.lang.Object o) {
-                    if (super.remove(o)) return true;
-                    boolean result = false;
-                    Iterator<HashSet<Entry<Long, T>>> iterator = this.iterator();
-                    while (iterator.hasNext() && !result) {
-                        if (iterator.next().equals(o)) {
-                            iterator.remove();
-                            result = true;
+                public boolean remove(final java.lang.Object o) {
+                    final boolean[] result = new boolean[1];
+                    final Iterator<HashSet<Entry<Long, T>>> iterator = this.iterator();
+                    ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
+                    Runnable runnable = new Runnable() {
+                        @Override
+                        public void run() {
+                            while (iterator.hasNext() && !result[0]) {
+                                if (iterator.next().equals(o)) {
+                                    synchronized (iterator) {
+                                        iterator.remove();
+                                    }
+                                    synchronized (result) {
+                                        result[0] = true;
+                                    }
+                                }
+                            }
+                        }
+                    };
+                    for (int thread=0; thread<Runtime.getRuntime().availableProcessors()*2; thread++) {
+                        executorService.execute(runnable);
+                    }
+                    executorService.shutdown();
+                    while (!executorService.isTerminated()) {
+                        try {
+                            Thread.sleep(0,1);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                            throw new RuntimeException(e);
                         }
                     }
-                    return result;
+                    return result[0];
                 }
             };
             values[1] = new HashSet<HashSet<Entry<Long,T>>>() {
@@ -93,17 +116,38 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
                 }
 
                 @Override
-                public boolean remove(java.lang.Object o) {
-                    if (super.remove(o)) return true;
-                    boolean result = false;
-                    Iterator<HashSet<Entry<Long, T>>> iterator = this.iterator();
-                    while (iterator.hasNext() && !result) {
-                        if (iterator.next().equals(o)) {
-                            iterator.remove();
-                            result = true;
+                public boolean remove(final java.lang.Object o) {
+                    final boolean[] result = new boolean[1];
+                    final Iterator<HashSet<Entry<Long, T>>> iterator = this.iterator();
+                    ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
+                    Runnable runnable = new Runnable() {
+                        @Override
+                        public void run() {
+                            while (iterator.hasNext() && !result[0]) {
+                                if (iterator.next().equals(o)) {
+                                    synchronized (iterator) {
+                                        iterator.remove();
+                                    }
+                                    synchronized (result) {
+                                        result[0] = true;
+                                    }
+                                }
+                            }
+                        }
+                    };
+                    for (int thread=0; thread<Runtime.getRuntime().availableProcessors()*2; thread++) {
+                        executorService.execute(runnable);
+                    }
+                    executorService.shutdown();
+                    while (!executorService.isTerminated()) {
+                        try {
+                            Thread.sleep(0,1);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                            throw new RuntimeException(e);
                         }
                     }
-                    return result;
+                    return result[0];
                 }
             };
         }
@@ -633,8 +677,122 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
     private transient volatile long mSize = 0;
 
     public DataLongMap() {
-        values[0] = new HashSet<>();
-        values[1] = new HashSet<>();
+        values[0] = new HashSet<Map<Long,T>>() {
+            @Override
+            public boolean contains(final java.lang.Object o) {
+                if (super.contains(o)) return true;
+                final boolean[] result = new boolean[1];
+                Parallel.For(this, new Parallel.Operation<Map<Long,T>>() {
+                    @Override
+                    public void perform(Map<Long, T> pParameter) {
+                        if (pParameter.equals(o)) {
+                            synchronized (result) {
+                                result[0] = true;
+                            }
+                        }
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return !result[0];
+                    }
+                });
+                return result[0];
+            }
+
+            @Override
+            public boolean remove(final java.lang.Object o) {
+                final boolean[] result = new boolean[1];
+                final Iterator<Map<Long, T>> iterator = this.iterator();
+                ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
+                Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        while (iterator.hasNext() && !result[0]) {
+                            if (iterator.next().equals(o)) {
+                                synchronized (iterator) {
+                                    iterator.remove();
+                                }
+                                synchronized (result) {
+                                    result[0] = true;
+                                }
+                            }
+                        }
+                    }
+                };
+                for (int thread=0; thread<Runtime.getRuntime().availableProcessors()*2; thread++) {
+                    executorService.execute(runnable);
+                }
+                executorService.shutdown();
+                while (!executorService.isTerminated()) {
+                    try {
+                        Thread.sleep(0,1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
+                    }
+                }
+                return result[0];
+            }
+        };
+        values[1] = new HashSet<Map<Long, T>>() {
+            @Override
+            public boolean contains(final java.lang.Object o) {
+                if (super.contains(o)) return true;
+                final boolean[] result = new boolean[1];
+                Parallel.For(this, new Parallel.Operation<Map<Long,T>>() {
+                    @Override
+                    public void perform(Map<Long, T> pParameter) {
+                        if (pParameter.equals(o)) {
+                            synchronized (result) {
+                                result[0] = true;
+                            }
+                        }
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return !result[0];
+                    }
+                });
+                return result[0];
+            }
+
+            @Override
+            public boolean remove(final java.lang.Object o) {
+                final boolean[] result = new boolean[1];
+                final Iterator<Map<Long, T>> iterator = this.iterator();
+                ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
+                Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        while (iterator.hasNext() && !result[0]) {
+                            if (iterator.next().equals(o)) {
+                                synchronized (iterator) {
+                                    iterator.remove();
+                                }
+                                synchronized (result) {
+                                    result[0] = true;
+                                }
+                            }
+                        }
+                    }
+                };
+                for (int thread=0; thread<Runtime.getRuntime().availableProcessors()*2; thread++) {
+                    executorService.execute(runnable);
+                }
+                executorService.shutdown();
+                while (!executorService.isTerminated()) {
+                    try {
+                        Thread.sleep(0,1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
+                    }
+                }
+                return result[0];
+            }
+        };
     }
 
     @Override
