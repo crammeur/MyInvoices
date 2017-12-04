@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
-import java.util.Collection;
+import java.util.Set;
 
 /**
  * Created by Marc-Antoine on 2017-11-23.
@@ -14,7 +14,7 @@ public abstract class Map<K extends Serializable,V> implements ca.qc.bergeron.ma
 
     @Override
     public final <K2 extends K, V2 extends V> void putAll(@NotNull final ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.Map<K2, V2> pMap) {
-        for (Collection<K2> collection : pMap.keySet().allCollections()) {
+        for (Set<K2> collection : pMap.keySet().<Set<K2>>allCollections()) {
             Parallel.For(collection, new Parallel.Operation<K2>() {
                 @Override
                 public void perform(K2 pParameter) {

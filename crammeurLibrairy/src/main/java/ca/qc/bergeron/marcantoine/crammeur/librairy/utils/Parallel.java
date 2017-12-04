@@ -3,7 +3,6 @@ package ca.qc.bergeron.marcantoine.crammeur.librairy.utils;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -20,45 +19,42 @@ public final class Parallel {
     public static <T2 extends T, T> void For(final List<T2> elements, final Operation<T> operation) {
         ExecutorService executor = Executors.newFixedThreadPool(MAX_THREAD);
         final int[] index = new int[1];
-        final Runnable runnable = new Runnable() {
-            final Callable<Void> callable = new Callable<Void>() {
-                @Override
-                public final Void call() throws Exception {
+        final Throwable[] throwable = new Throwable[1];
+        final Callable<Void> callable = new Callable<Void>() {
+            @Override
+            public final Void call() throws Exception {
+                if (index[0] < elements.size() && (index[0] == 0 || operation.follow())) {
                     T result = elements.get(index[0]);
+                    operation.perform(result);
                     synchronized (index) {
                         index[0]++;
                     }
-                    operation.perform(result);
-                    return null;
                 }
-            };
-
+                return null;
+            }
+        };
+        final Runnable runnable = new Runnable() {
             @Override
             public final void run() {
                 while (index[0] < elements.size()) {
                     try {
-                        synchronized (operation) {
-                            if (operation.follow()) {
-                                synchronized (callable) {
-                                    callable.call();
-                                }
-                                if (!operation.follow()) {
-                                    break;
-                                }
-                            } else {
-                                break;
-                            }
+                        synchronized (callable) {
+                            callable.call();
                         }
-                    } catch (IndexOutOfBoundsException e) {
-                        break;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        throw new RuntimeException(e);
+                        if (!operation.follow()) {
+                            break;
+                        }
+                    } catch (Throwable t) {
+                        t.printStackTrace();
+                        synchronized (throwable) {
+                            throwable[0] = t;
+                        }
+                        throw new RuntimeException(t);
                     }
                 }
             }
         };
-        for (int threadIndex=0; threadIndex<MAX_THREAD; threadIndex++) {
+        for (int threadIndex=0; threadIndex<MAX_THREAD && threadIndex < elements.size(); threadIndex++) {
             executor.execute(runnable);
         }
         executor.shutdown();
@@ -70,49 +66,50 @@ public final class Parallel {
                 throw new RuntimeException(e);
             }
         }
+        if (throwable[0] != null) throw new RuntimeException(throwable[0]);
     }
 
     public static <T2 extends T, T> void For(final Collection<T2> elements, final Operation<T> operation) {
         ExecutorService executor = Executors.newFixedThreadPool(MAX_THREAD);
         final Iterator<T2> iterator = elements.iterator();
-        final Runnable runnable = new Runnable() {
-            final Callable<Void> callable = new Callable<Void>() {
-                @Override
-                public final Void call() throws Exception {
+        final Throwable[] throwable = new Throwable[1];
+        final Callable<Void> callable = new Callable<Void>() {
+            boolean first = true;
+            @Override
+            public final Void call() throws Exception {
+                if (iterator.hasNext() && (first || operation.follow())) {
                     T result;
                     synchronized (iterator) {
                         result = iterator.next();
                     }
                     operation.perform(result);
-                    return null;
+                    if (first) first = false;
                 }
-            };
+                return null;
+            }
+        };
+        final Runnable runnable = new Runnable() {
             @Override
             public final void run() {
                 while (iterator.hasNext()) {
                     try {
-                        synchronized (operation) {
-                            if (operation.follow()) {
-                                synchronized (callable) {
-                                    callable.call();
-                                }
-                                if (!operation.follow()) {
-                                    break;
-                                }
-                            } else {
-                                break;
-                            }
+                        synchronized (callable) {
+                            callable.call();
                         }
-                    } catch (NoSuchElementException e) {
-                        break;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        throw new RuntimeException(e);
+                        if (!operation.follow()) {
+                            break;
+                        }
+                    } catch (Throwable t) {
+                        t.printStackTrace();
+                        synchronized (throwable) {
+                            throwable[0] = t;
+                        }
+                        throw new RuntimeException(t);
                     }
                 }
             }
         };
-        for (int threadIndex=0; threadIndex<MAX_THREAD; threadIndex++) {
+        for (int threadIndex=0; threadIndex<MAX_THREAD && threadIndex < elements.size(); threadIndex++) {
             executor.execute(runnable);
         }
         executor.shutdown();
@@ -124,52 +121,45 @@ public final class Parallel {
                 throw new RuntimeException(e);
             }
         }
+        if (throwable[0] != null) throw new RuntimeException(throwable[0]);
     }
 
     public static <T2 extends T, T> void For(final T2[] elements, final Operation<T> operation) {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         final int[] index = new int[1];
-        final Runnable runnable = new Runnable() {
-            final Callable<Void> callable = new Callable<Void>() {
-                @Override
-                public final Void call() throws Exception {
+        final Throwable[] throwable = new Throwable[1];
+        final Callable<Void> callable = new Callable<Void>() {
+            @Override
+            public final Void call() throws Exception {
+                if (index[0] < elements.length && (index[0] == 0 || operation.follow())) {
                     T result = elements[index[0]];
+                    operation.perform(result);
                     synchronized (index) {
                         index[0]++;
                     }
-                    operation.perform(result);
-                    return null;
                 }
-            };
+                return null;
+            }
+        };
+        final Runnable runnable = new Runnable() {
             @Override
             public final void run() {
-                synchronized (index) {
-                    while (index[0] < elements.length) {
-                        try {
-                            synchronized (operation) {
-                                if (operation.follow()) {
-                                    synchronized (callable) {
-                                        callable.call();
-                                    }
-                                    synchronized (index) {
-                                        index[0]++;
-                                    }
-                                    if (!operation.follow()) {
-                                        break;
-                                    }
-                                } else {
-                                    break;
-                                }
-                            }
-                        } catch (NoSuchElementException e) {
-                            break;
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            throw new RuntimeException(e);
+                while (index[0] < elements.length) {
+                    try {
+                        synchronized (callable) {
+                            callable.call();
                         }
+                        if (!operation.follow()) {
+                            break;
+                        }
+                    } catch (Throwable t) {
+                        t.printStackTrace();
+                        synchronized (throwable) {
+                            throwable[0] = t;
+                        }
+                        throw new RuntimeException(t);
                     }
                 }
-
             }
         };
         executor.execute(runnable);
@@ -182,49 +172,50 @@ public final class Parallel {
                 throw new RuntimeException(e);
             }
         }
+        if (throwable[0] != null) throw new RuntimeException(throwable[0]);
     }
 
     public static <T2 extends T, T> void For(final Iterable<T2> elements, final Operation<T> operation) {
         ExecutorService executor = Executors.newFixedThreadPool(MAX_THREAD);
         final Iterator<T2> iterator = elements.iterator();
-        final Runnable runnable = new Runnable() {
-            final Callable<Void> callable = new Callable<Void>() {
-                @Override
-                public final Void call() throws Exception {
+        final Throwable[] throwable = new Throwable[1];
+        final Callable<Void> callable = new Callable<Void>() {
+            boolean first = true;
+            @Override
+            public final Void call() throws Exception {
+                if (iterator.hasNext() && (first || operation.follow())) {
                     T result;
                     synchronized (iterator) {
                         result = iterator.next();
                     }
                     operation.perform(result);
-                    return null;
+                    if (first) first = false;
                 }
-            };
+                return null;
+            }
+        };
+        final Runnable runnable = new Runnable() {
             @Override
             public final void run() {
                 while (iterator.hasNext()) {
                     try {
-                        synchronized (operation) {
-                            if (operation.follow()) {
-                                synchronized (callable) {
-                                    callable.call();
-                                }
-                                if (!operation.follow()) {
-                                    break;
-                                }
-                            } else {
-                                break;
-                            }
+                        synchronized (callable) {
+                            callable.call();
                         }
-                    } catch (NoSuchElementException e) {
-                        break;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        throw new RuntimeException(e);
+                        if (!operation.follow()) {
+                            break;
+                        }
+                    } catch (Throwable t) {
+                        t.printStackTrace();
+                        synchronized (throwable) {
+                            throwable[0] = t;
+                        }
+                        throw new RuntimeException(t);
                     }
                 }
             }
         };
-        for (int threadIndex=0; threadIndex<MAX_THREAD; threadIndex++) {
+        for (int threadIndex=0; threadIndex<MAX_THREAD && iterator.hasNext(); threadIndex++) {
             executor.execute(runnable);
         }
         executor.shutdown();
@@ -236,6 +227,7 @@ public final class Parallel {
                 throw new RuntimeException(e);
             }
         }
+        if (throwable[0] != null) throw new RuntimeException(throwable[0]);
     }
 /*    @NotNull
     public static <T,R> Collection<Callable<R>> createCallables(final Collection<T> elements, final Operation<T,R> operation) {

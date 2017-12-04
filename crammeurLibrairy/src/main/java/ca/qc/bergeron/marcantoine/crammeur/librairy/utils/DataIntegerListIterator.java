@@ -11,6 +11,7 @@ import java.util.NoSuchElementException;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.ListIterator;
 
 /**
@@ -18,17 +19,219 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.ListIterator;
 
 
 
-public final class IntegerListIterator<T extends Data<Integer>> extends ca.qc.bergeron.marcantoine.crammeur.librairy.utils.ListIterator<T, Integer> {
+public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.qc.bergeron.marcantoine.crammeur.librairy.utils.ListIterator<T, Integer> implements DataListIterator<T,Integer> {
 
     protected final LinkedList<T> values;
     protected transient volatile int mIndex = NULL_INDEX;
 
-    private IntegerListIterator(LinkedList<T> pValues) {
-        values = pValues;
-    }
+    public DataIntegerListIterator() {
+        values = new LinkedList<T>() {
 
-    public IntegerListIterator() {
-        values = new LinkedList<>();
+            @Override
+            public boolean addAll(@NotNull Collection<? extends T> c) {
+                final boolean[] result = new boolean[1];
+                final Collection<T> collection = this;
+                result[0] = !c.isEmpty();
+                Parallel.For(c, new Parallel.Operation<T>() {
+                    @Override
+                    public void perform(T pParameter) {
+                        synchronized (result) {
+                            synchronized (collection) {
+                                result[0] = collection.add(pParameter);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return result[0];
+                    }
+                });
+                return result[0];
+            }
+
+            @Override
+            public boolean addAll(int index, Collection<? extends T> c) {
+                final boolean[] result = new boolean[1];
+                final int[] index2 = new int[1];
+                final List<T> list = this;
+                result[0] = !c.isEmpty();
+                index2[0] = index;
+                Parallel.For(c, new Parallel.Operation<T>() {
+                    @Override
+                    public void perform(T pParameter) {
+                        synchronized (result) {
+                            try {
+                                synchronized (list) {
+                                    list.add(index2[0], pParameter);
+                                }
+                            } catch (Throwable t) {
+                                result[0] = false;
+                                throw t;
+                            }
+                        }
+                        if (result[0]) {
+                            synchronized (index2) {
+                                index2[0]++;
+                            }
+                        }
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return result[0];
+                    }
+                });
+                return result[0];
+            }
+
+            @Override
+            public int indexOf(final Object o) {
+                final int[] result = new int[1];
+                result[0] = -1;
+                Parallel.For(this, new Parallel.Operation<T>() {
+                    int index = 0;
+                    @Override
+                    public void perform(T pParameter) {
+                        if ((o == null && pParameter == null) || (pParameter != null && pParameter.equals(o))) {
+                            synchronized (result) {
+                                result[0] = index;
+                            }
+                        } else {
+                            synchronized (this) {
+                                index++;
+                            }
+                        }
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return result[0] == -1;
+                    }
+                });
+                return result[0];
+            }
+
+            @Override
+            public int lastIndexOf(final Object o) {
+                final int[] result = new int[1];
+                result[0] = -1;
+                Parallel.For(this, new Parallel.Operation<T>() {
+                    int index = 0;
+                    @Override
+                    public void perform(T pParameter) {
+                        if ((o == null && pParameter == null) || (pParameter != null && pParameter.equals(o))) {
+                            synchronized (result) {
+                                result[0] = index;
+                            }
+                        }
+                        synchronized (this) {
+                            index++;
+                        }
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return true;
+                    }
+                });
+                return result[0];
+            }
+
+            @Override
+            public boolean contains(final Object o) {
+                final boolean[] result = new boolean[1];
+                Parallel.For(this, new Parallel.Operation<T>() {
+                    @Override
+                    public void perform(T pParameter) {
+                        if ((o == null && pParameter == null) || (pParameter != null && pParameter.equals(o))) {
+                            synchronized (result) {
+                                result[0] = true;
+                            }
+                        }
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return !result[0];
+                    }
+                });
+                return result[0];
+            }
+
+            @SuppressWarnings("SuspiciousMethodCalls")
+            @Override
+            public boolean containsAll(@NotNull Collection<?> c) {
+                final boolean[] result = new boolean[1];
+                final Collection<T> collection = this;
+                result[0] = !c.isEmpty();
+                Parallel.For(c, new Parallel.Operation<Object>() {
+                    @Override
+                    public void perform(Object pParameter) {
+                        synchronized (result) {
+                            synchronized (collection) {
+                                result[0] = collection.contains(pParameter);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return result[0];
+                    }
+                });
+                return result[0];
+            }
+
+            @SuppressWarnings("SuspiciousMethodCalls")
+            @Override
+            public boolean removeAll(Collection<?> c) {
+                final boolean[] result = new boolean[1];
+                result[0] = !c.isEmpty();
+                final Collection<T> collection = this;
+                Parallel.For(c, new Parallel.Operation<Object>() {
+                    @Override
+                    public void perform(Object pParameter) {
+                        synchronized (result) {
+                            synchronized (collection) {
+                                result[0] = collection.remove(pParameter);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return result[0];
+                    }
+                });
+                return result[0];
+            }
+
+            @Override
+            public boolean retainAll(final Collection<?> c) {
+                final boolean[] result = new boolean[1];
+                final Collection<T> delete = new LinkedList<>();
+                result[0] = !c.isEmpty();
+                Parallel.For(this, new Parallel.Operation<T>() {
+                    @Override
+                    public void perform(T pParameter) {
+                        if (!c.contains(pParameter)) {
+                            synchronized (result) {
+                                synchronized (delete) {
+                                    result[0] = delete.add(pParameter);
+                                }
+                            }
+                        }
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return result[0];
+                    }
+                });
+                return result[0] && this.removeAll(delete);
+            }
+        };
     }
 
     @Override
@@ -38,7 +241,7 @@ public final class IntegerListIterator<T extends Data<Integer>> extends ca.qc.be
     }
 
     @Override
-    public T get(@NotNull Integer pIndex) {
+    public final T get(@NotNull Integer pIndex) {
         return values.get(pIndex);
     }
 
@@ -68,25 +271,25 @@ public final class IntegerListIterator<T extends Data<Integer>> extends ca.qc.be
 
             @Override
             public boolean follow() {
-                return false;
+                return true;
             }
         });
     }
 
     @Override
-    public T remove(Integer pIndex) {
-        return null;
+    public final T remove(@NotNull Integer pIndex) {
+        return values.remove((int)pIndex);
     }
 
     @NotNull
     @Override
-    public Integer indexOf(@Nullable T pData) {
+    public final Integer indexOf(@Nullable T pData) {
         return values.indexOf(pData);
     }
 
     @NotNull
     @Override
-    public Integer lastIndexOf(@Nullable T pData) {
+    public final Integer lastIndexOf(@Nullable T pData) {
         return values.lastIndexOf(pData);
     }
 
@@ -172,17 +375,17 @@ public final class IntegerListIterator<T extends Data<Integer>> extends ca.qc.be
      * Use currentCollection
      * @return
      */
-    @SuppressWarnings("unchecked")
+    //@SuppressWarnings("unchecked")
     @Deprecated
     @NotNull
     @Override
-    public final Iterable<List<T>> allCollections() {
+    public Iterable<List<T>> allCollections() {
         return new Iterable<List<T>>() {
             @NotNull
             @Override
             public Iterator<List<T>> iterator() {
                 return new Iterator<List<T>>() {
-                    private final LinkedList<T> values = IntegerListIterator.this.values;
+                    private final LinkedList<T> values = DataIntegerListIterator.this.values;
                     private transient volatile int mIndex = NULL_INDEX;
                     private transient volatile int mSize = 1;
 
@@ -210,12 +413,12 @@ public final class IntegerListIterator<T extends Data<Integer>> extends ca.qc.be
     @Override
     public final List<T> collectionOf(@NotNull Integer pIndex) {
         if (pIndex < MIN_INDEX || pIndex > values.size() - 1) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
-        return values;
+        return currentCollection();
     }
 
     @NotNull
     @Override
-    public Integer count(@Nullable final T pEntity) {
+    public final Integer count(@Nullable final T pEntity) {
         final int[] result = new int[1];
         Parallel.For(values, new Parallel.Operation<T>() {
             @Override
@@ -312,7 +515,7 @@ public final class IntegerListIterator<T extends Data<Integer>> extends ca.qc.be
     public final <E extends T> boolean retainAll(@NotNull CollectionIterator<E, Integer> pCollectionIterator) {
         final boolean[] result = new boolean[1];
         result[0] = true;
-        final IntegerListIterator<T> retain = new IntegerListIterator<>();
+        final DataIntegerListIterator<T> retain = new DataIntegerListIterator<>();
         for (Collection<E> collection : pCollectionIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
                 @Override
@@ -327,7 +530,7 @@ public final class IntegerListIterator<T extends Data<Integer>> extends ca.qc.be
             });
         }
 
-        final IntegerListIterator<T> delete = new IntegerListIterator<>();
+        final DataIntegerListIterator<T> delete = new DataIntegerListIterator<>();
         Parallel.For(this.currentCollection(), new Parallel.Operation<T>() {
             @Override
             public void perform(T pParameter) {
@@ -347,7 +550,7 @@ public final class IntegerListIterator<T extends Data<Integer>> extends ca.qc.be
             @Override
             public void perform(T pParameter) {
                 synchronized (result) {
-                    result[0] = IntegerListIterator.this.remove(pParameter);
+                    result[0] = DataIntegerListIterator.this.remove(pParameter);
                 }
             }
 
@@ -368,20 +571,20 @@ public final class IntegerListIterator<T extends Data<Integer>> extends ca.qc.be
 
     @NotNull
     @Override
-    public java.util.ListIterator listIterator() {
+    public final java.util.ListIterator listIterator() {
         return values.listIterator();
     }
 
     @NotNull
     @Override
-    public java.util.ListIterator listIterator(@NotNull Integer pIndex) {
+    public final java.util.ListIterator listIterator(@NotNull Integer pIndex) {
         return values.listIterator(pIndex);
     }
 
     @NotNull
     @Override
     public final ListIterator<T, Integer> subDataListIterator(@NotNull final Integer pIndex1, @NotNull final Integer pIndex2) {
-        final ListIterator<T, Integer> result = new IntegerListIterator<>();
+        final ListIterator<T, Integer> result = new DataIntegerListIterator<>();
         Parallel.Operation<T> operation = new Parallel.Operation<T>() {
             long index = NULL_INDEX;
             boolean follow = true;
@@ -436,11 +639,5 @@ public final class IntegerListIterator<T extends Data<Integer>> extends ca.qc.be
     @Override
     public final int collectionIndexOf(@NotNull Integer pIndex) {
         return pIndex;
-    }
-
-    @NotNull
-    @Override
-    public final Iterator<T> iterator() {
-        return new IntegerListIterator<>(values);
     }
 }

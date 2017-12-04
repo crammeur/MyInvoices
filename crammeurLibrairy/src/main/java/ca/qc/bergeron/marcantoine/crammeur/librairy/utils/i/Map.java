@@ -29,7 +29,7 @@ public interface Map<K extends Serializable, V> {
 
     void clear();
 
-    KeySetIterator<K> keySet();
+    SetIterator<K,K> keySet();
 
     CollectionIterator<V, K> values();
 

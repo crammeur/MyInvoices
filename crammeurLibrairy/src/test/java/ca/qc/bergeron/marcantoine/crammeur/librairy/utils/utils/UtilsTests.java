@@ -8,12 +8,9 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import ca.qc.bergeron.marcantoine.crammeur.librairy.exceptions.ContainsException;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
-import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.IntegerListIterator;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.DataIntegerListIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.LongListIterator;
-import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.KeyLongSetIterator;
-import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.KeySetIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.Parallel;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.ListIterator;
 
@@ -26,7 +23,7 @@ public class UtilsTests {
     @Test
     public void testDataIntegerListIterator() {
         ListIterator<Data<Integer>, Integer> dc;
-        dc = new IntegerListIterator<Data<Integer>>();
+        dc = new DataIntegerListIterator<Data<Integer>>();
         Data<Integer> data = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Integer>() {
             Integer Id = null;
 
@@ -160,22 +157,30 @@ public class UtilsTests {
             }
         }
         final LongListIterator<Data<Long>> dl3 = new LongListIterator<>();
-        for (List<Data<Long>> collection : dli.<List<Data<Long>>>allCollections()){
-            Parallel.For(collection, new Parallel.Operation<Data<Long>>() {
-                @Override
-                public void perform(Data<Long> pParameter) {
-                    System.out.println(pParameter);
-                    synchronized (dl3) {
-                        dl3.addAtEnd(pParameter);
+        Parallel.For(dli.<List<Data<Long>>>allCollections(), new Parallel.Operation<List<Data<Long>>>() {
+            @Override
+            public void perform(List<Data<Long>> pParameter) {
+                Parallel.For((Iterable<? extends Data<Long>>) pParameter, new Parallel.Operation<Data<Long>>() {
+                    @Override
+                    public void perform(Data<Long> pParameter) {
+                        System.out.println(pParameter);
+                        synchronized (dl3) {
+                            dl3.addAtEnd(pParameter);
+                        }
                     }
-                }
 
-                @Override
-                public boolean follow() {
-                    return true;
-                }
-            });
-        }
+                    @Override
+                    public boolean follow() {
+                        return true;
+                    }
+                });
+            }
+
+            @Override
+            public boolean follow() {
+                return true;
+            }
+        });
         Assert.assertTrue(dli.size().equals(dl3.size()));
         Assert.assertTrue(dli.equals(dl3));
 
@@ -221,8 +226,8 @@ public class UtilsTests {
 
     @Test
     public void testKeyLongSetIterator() {
-        final KeySetIterator<Long> ksi = new KeyLongSetIterator();
-        KeySetIterator<Long> ksi2 = new KeyLongSetIterator();
+        /*final SetIterator<Long> ksi = new LongSetIterator();
+        SetIterator<Long> ksi2 = new LongSetIterator();
         Assert.assertTrue(ksi.equals(ksi2));
         Assert.assertTrue(ksi.isEmpty() && ksi2.isEmpty());
         ksi.add(0L);
@@ -270,7 +275,7 @@ public class UtilsTests {
                 }
             }
         }
-        Assert.assertTrue(ksi.size().equals(count));
+        Assert.assertTrue(ksi.size().equals(count));*/
     }
 
     @Test

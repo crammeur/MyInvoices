@@ -10,18 +10,18 @@ import java.util.Collection;
  * Created by Marc-Antoine on 2017-11-23.
  */
 
-public abstract class KeySetIterator<K extends Serializable> extends CollectionIterator<K,K> implements ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.KeySetIterator<K> {
+public abstract class SetIterator<E extends Serializable, S extends Serializable> extends CollectionIterator<E, S> implements ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.SetIterator<E,S> {
 
     @Override
-    public <E extends K> boolean removeAll(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E, K> pKeyCollectionIterator) {
+    public final <E2 extends E> boolean removeAll(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E2, S> pKeyCollectionIterator) {
         final boolean[] result = new boolean[1];
         result[0] = true;
-        for (Collection<E> collection : pKeyCollectionIterator.allCollections()) {
+        for (Collection<E2> collection : pKeyCollectionIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
 
                 @Override
                 public void perform(E pParameter) {
-                    if (!KeySetIterator.this.remove(pParameter)) {
+                    if (!ca.qc.bergeron.marcantoine.crammeur.librairy.utils.SetIterator.this.remove(pParameter)) {
                         synchronized (result) {
                             result[0] = false;
                         }
@@ -38,7 +38,7 @@ public abstract class KeySetIterator<K extends Serializable> extends CollectionI
     }
 
     @Override
-    public final boolean equals(@Nullable final ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.KeySetIterator<K> pKeySetIterator) {
-        return pKeySetIterator != null && (this.equals((Object) pKeySetIterator) || this.containsAll(pKeySetIterator));
+    public final boolean equals(@Nullable final ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.SetIterator<E,S> pSetIterator) {
+        return pSetIterator != null && (this.equals((Object) pSetIterator) || this.containsAll(pSetIterator));
     }
 }
