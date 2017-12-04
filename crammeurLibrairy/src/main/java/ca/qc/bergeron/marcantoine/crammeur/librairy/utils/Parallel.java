@@ -23,7 +23,7 @@ public final class Parallel {
         final Callable<Void> callable = new Callable<Void>() {
             @Override
             public final Void call() throws Exception {
-                if (index[0] < elements.size() && (index[0] == 0 || operation.follow())) {
+                if ((operation.follow() || index[0] == 0) && index[0] < elements.size()) {
                     T result = elements.get(index[0]);
                     operation.perform(result);
                     synchronized (index) {
@@ -77,7 +77,7 @@ public final class Parallel {
             boolean first = true;
             @Override
             public final Void call() throws Exception {
-                if (iterator.hasNext() && (first || operation.follow())) {
+                if ((operation.follow() || first) && iterator.hasNext()) {
                     T result;
                     synchronized (iterator) {
                         result = iterator.next();
@@ -131,7 +131,7 @@ public final class Parallel {
         final Callable<Void> callable = new Callable<Void>() {
             @Override
             public final Void call() throws Exception {
-                if (index[0] < elements.length && (index[0] == 0 || operation.follow())) {
+                if ((operation.follow() || index[0] == 0 ) && index[0] < elements.length) {
                     T result = elements[index[0]];
                     operation.perform(result);
                     synchronized (index) {
@@ -183,7 +183,7 @@ public final class Parallel {
             boolean first = true;
             @Override
             public final Void call() throws Exception {
-                if (iterator.hasNext() && (first || operation.follow())) {
+                if ((operation.follow() || first) && iterator.hasNext()) {
                     T result;
                     synchronized (iterator) {
                         result = iterator.next();
