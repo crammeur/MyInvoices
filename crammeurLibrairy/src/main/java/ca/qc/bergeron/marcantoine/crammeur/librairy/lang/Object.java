@@ -81,12 +81,16 @@ public abstract class Object implements Serializable {
                     fields = clazz.getDeclaredFields();
                     for (Field field : fields) {
                         if (pMap.containsKey(field)) {
-                            final boolean b = field.isAccessible();
-                            try {
-                                field.setAccessible(true);
-                                field.set(result,pMap.get(field));
-                            } finally {
-                                field.setAccessible(b);
+                            if (!Modifier.isFinal(field.getModifiers()) || !Modifier.isStatic(field.getModifiers())) {
+                                final boolean b = field.isAccessible();
+                                try {
+                                    field.setAccessible(true);
+                                    field.set(result,pMap.get(field));
+                                } finally {
+                                    field.setAccessible(b);
+                                }
+                            } else {
+                                throw new IllegalAccessException("Fields static and final can't be modified");
                             }
                         }
                     }
@@ -121,12 +125,14 @@ public abstract class Object implements Serializable {
             do {
                 fields = clazz.getDeclaredFields();
                 for (Field field : fields) {
-                    final boolean b = field.isAccessible();
-                    try {
-                        field.setAccessible(true);
-                        field.set(result,field.get(pObject));
-                    } finally {
-                        field.setAccessible(b);
+                    if (!Modifier.isFinal(field.getModifiers()) || !Modifier.isStatic(field.getModifiers())) {
+                        final boolean b = field.isAccessible();
+                        try {
+                            field.setAccessible(true);
+                            field.set(result,field.get(pObject));
+                        } finally {
+                            field.setAccessible(b);
+                        }
                     }
                 }
             } while ((clazz = clazz.getSuperclass()) != null);
@@ -140,7 +146,10 @@ public abstract class Object implements Serializable {
             try {
                 field.setAccessible(true);
                 if (pMap.containsKey(field)) {
-                    field.set(pObject, pMap.get(field));
+                    if (!Modifier.isFinal(field.getModifiers()) || !Modifier.isStatic(field.getModifiers()))
+                        field.set(pObject, pMap.get(field));
+                    else
+                        throw new RuntimeException("Fields static and final can't be modified");
                 }
             } finally {
                 field.setAccessible(b);

@@ -23,28 +23,22 @@ public abstract class CollectionIterator<E, S extends Serializable> implements c
     }
 
     @Override
-    public boolean contains(@Nullable final E pData) {
+    public final boolean contains(@Nullable final E pData) {
         final boolean[] result = new boolean[1];
-
         for (Collection<E> collection : this.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
-                boolean follow = true;
-
                 @Override
                 public void perform(E pParameter) {
                     if ((pData == null && pParameter == null) || (pData != null && pData.equals(pParameter))) {
                         synchronized (result) {
                             result[0] = true;
                         }
-                        synchronized (this) {
-                            follow = false;
-                        }
                     }
                 }
 
                 @Override
                 public boolean follow() {
-                    return follow;
+                    return !result[0];
                 }
             });
         }
@@ -53,25 +47,21 @@ public abstract class CollectionIterator<E, S extends Serializable> implements c
     }
 
     @Override
-    public <E2 extends E> boolean containsAll(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E2, S> pCollectionIterator) {
+    public final <E2 extends E> boolean containsAll(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E2, S> pCollectionIterator) {
         final boolean[] result = new boolean[1];
-        result[0] = (this.isEmpty() && pCollectionIterator.isEmpty());
+        result[0] = !pCollectionIterator.isEmpty();
         for (Collection<E2> collection : pCollectionIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E2>() {
-                boolean follow = true;
                 @Override
                 public void perform(E2 pParameter) {
                     synchronized (result) {
                         result[0] = CollectionIterator.this.contains(pParameter);
                     }
-                    synchronized (this) {
-                        follow = result[0];
-                    }
                 }
 
                 @Override
                 public boolean follow() {
-                    return follow;
+                    return result[0];
                 }
             });
         }
@@ -79,7 +69,7 @@ public abstract class CollectionIterator<E, S extends Serializable> implements c
     }
 
     @Override
-    public boolean equals(@Nullable final ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E, S> pCollectionIterator) {
+    public final boolean equals(@Nullable final ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E, S> pCollectionIterator) {
         if (pCollectionIterator == null) return false;
         //Save time
         if (this.equals((Object) pCollectionIterator)) return true;
@@ -87,7 +77,6 @@ public abstract class CollectionIterator<E, S extends Serializable> implements c
         if ((result[0] = this.size().equals(pCollectionIterator.size())) && !this.isEmpty()) {
             for (Collection<E> collection : this.allCollections()) {
                 Parallel.For(collection, new Parallel.Operation<E>() {
-
                     @Override
                     public void perform(final E pParameter) {
                         if (!CollectionIterator.this.count(pParameter).equals(pCollectionIterator.count(pParameter))) {

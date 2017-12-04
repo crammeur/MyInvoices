@@ -37,7 +37,8 @@ public abstract class KeySetIterator<K extends Serializable> extends CollectionI
         return result[0];
     }
 
-    public boolean equals(@Nullable final ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.KeySetIterator<K> pKeySetIterator) {
+    @Override
+    public final boolean equals(@Nullable final ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.KeySetIterator<K> pKeySetIterator) {
         return pKeySetIterator != null && (this.equals((Object) pKeySetIterator) || this.containsAll(pKeySetIterator));
     }
 }

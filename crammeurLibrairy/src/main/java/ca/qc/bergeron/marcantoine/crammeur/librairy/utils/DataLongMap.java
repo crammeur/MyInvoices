@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -22,6 +23,15 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.KeySetIterator;
 public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
 
     public class EntryLongSetIterator extends ca.qc.bergeron.marcantoine.crammeur.librairy.utils.EntrySetIterator<T,Long> {
+        @Override
+        public <E2 extends Entry<Long, T>> boolean removeAll(@NotNull CollectionIterator<E2, Long> pCollectionIterator) {
+            return false;
+        }
+
+        @Override
+        public <E2 extends Entry<Long, T>> boolean retainAll(@NotNull CollectionIterator<E2, Long> pCollectionIterator) {
+            return false;
+        }
 
         protected final HashSet<HashSet<Entry<Long, T>>>[] values = new HashSet[2];
         protected transient volatile long mIndex = NULL_INDEX;
@@ -604,9 +614,30 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
                                     }
                                 }
                                 try {
-                                    E2 value = Object.updateObject(pParameter.getValue(),map);
-                                    return pParameter.setValue(value);
+                                    java.util.Map<Field, java.lang.Object> map2 = new HashMap<>();
+                                    Class<?> clazz2 = pParameter.getValue().getClass();
+                                    Field[] fields2;
+                                    do {
+                                        fields2 = clazz2.getDeclaredFields();
+                                        for (Field field : fields2) {
+                                            boolean b = field.isAccessible();
+                                            try {
+                                                field.setAccessible(true);
+                                                map2.put(field,field.get(pParameter.getValue()));
+                                            } finally {
+                                                field.setAccessible(b);
+                                            }
+                                        }
+                                    } while ((clazz2 = clazz2.getSuperclass()) != null);
+                                    E2 value = Object.createObject((Class<E2>) pParameter.getValue().getClass(),map2);
+                                    return pParameter.setValue(Object.updateObject(value,map));
                                 } catch (IllegalAccessException e) {
+                                    e.printStackTrace();
+                                    throw new RuntimeException(e);
+                                } catch (InvocationTargetException e) {
+                                    e.printStackTrace();
+                                    throw new RuntimeException(e);
+                                } catch (InstantiationException e) {
                                     e.printStackTrace();
                                     throw new RuntimeException(e);
                                 }
@@ -644,6 +675,7 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
                     public void perform(Entry<Long,T> pParameter) {
                         synchronized (result) {
                             result[0] = EntryLongSetIterator.this.remove(pParameter);
+                            if (!result[0]) throw new RuntimeException();
                         }
                     }
 
@@ -1003,7 +1035,7 @@ public final class DataLongMap<T extends Data<Long>> extends DataMap<Long,T> {
     @NotNull
     @Override
     public final CollectionIterator<T, Long> values() {
-        final CollectionIterator<T,Long> result = new DataLongListIterator<>();
+        final CollectionIterator<T,Long> result = new LongListIterator<>();
         for (HashSet<java.util.Map<Long,T>> hashSet : values) {
             for (java.util.Map<Long, T> map : hashSet) {
                 Parallel.For(map.values(), new Parallel.Operation<T>() {

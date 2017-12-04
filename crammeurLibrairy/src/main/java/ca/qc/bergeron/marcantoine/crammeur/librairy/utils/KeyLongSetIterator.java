@@ -7,8 +7,10 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -21,24 +23,27 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator;
 
 public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
-    protected final HashSet<HashSet<Long>>[] values = new HashSet[2];
+    protected final LinkedList<TreeSet<Long>>[] values = new LinkedList[2];
     protected transient volatile long mIndex = NULL_INDEX;
+    protected transient volatile Long mHashCode = null;
+    protected transient volatile boolean mNullKey = false;
     protected transient volatile long mSize = 0;
 
-    private KeyLongSetIterator(HashSet<HashSet<Long>> pHashSetOne, HashSet<HashSet<Long>> pHashSetTwo, long pSize) {
+    private KeyLongSetIterator(LinkedList<TreeSet<Long>> pHashSetOne, LinkedList<TreeSet<Long>> pHashSetTwo, long pSize) {
         values[0] = pHashSetOne;
         values[1] = pHashSetTwo;
         mSize = pSize;
     }
 
     public KeyLongSetIterator() {
-        values[0] = new HashSet<HashSet<Long>>() {
+        values[0] = new LinkedList<TreeSet<Long>>() {
+
             @Override
-            public boolean contains(final Object o) {
+            public boolean contains(@NotNull final Object o) {
                 final boolean[] result = new boolean[1];
-                Parallel.For(this, new Parallel.Operation<HashSet<Long>>() {
+                Parallel.For(this, new Parallel.Operation<TreeSet<Long>>() {
                     @Override
-                    public void perform(HashSet<Long> pParameter) {
+                    public void perform(TreeSet<Long> pParameter) {
                         if (pParameter.equals(o)) {
                             synchronized (result) {
                                 result[0] = true;
@@ -55,20 +60,20 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
             }
 
             @Override
-            public boolean remove(final Object o) {
+            public boolean remove(@NotNull final Object o) {
                 final boolean[] result = new boolean[1];
-                final Iterator<HashSet<Long>> iterator = this.iterator();
+                final Iterator<TreeSet<Long>> iterator = this.iterator();
                 ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
                 Runnable runnable = new Runnable() {
                     @Override
                     public void run() {
                         while (iterator.hasNext() && !result[0]) {
-                            if (iterator.next().equals(o)) {
-                                synchronized (iterator) {
+                            synchronized (iterator) {
+                                if (iterator.next().equals(o)) {
                                     iterator.remove();
-                                }
-                                synchronized (result) {
-                                    result[0] = true;
+                                    synchronized (result) {
+                                        result[0] = true;
+                                    }
                                 }
                             }
                         }
@@ -89,13 +94,13 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
                 return result[0];
             }
         };
-        values[1] = new HashSet<HashSet<Long>>() {
+        values[1] = new LinkedList<TreeSet<Long>>() {
             @Override
-            public boolean contains(final Object o) {
+            public boolean contains(@NotNull final Object o) {
                 final boolean[] result = new boolean[1];
-                Parallel.For(this, new Parallel.Operation<HashSet<Long>>() {
+                Parallel.For(this, new Parallel.Operation<TreeSet<Long>>() {
                     @Override
-                    public void perform(HashSet<Long> pParameter) {
+                    public void perform(TreeSet<Long> pParameter) {
                         if (pParameter.equals(o)) {
                             synchronized (result) {
                                 result[0] = true;
@@ -112,20 +117,22 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
             }
 
             @Override
-            public boolean remove(final Object o) {
+            public boolean remove(@NotNull final Object o) {
                 final boolean[] result = new boolean[1];
-                final Iterator<HashSet<Long>> iterator = this.iterator();
+                final Iterator<TreeSet<Long>> iterator = this.iterator();
                 ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
                 Runnable runnable = new Runnable() {
                     @Override
                     public void run() {
                         while (iterator.hasNext() && !result[0]) {
-                            if (iterator.next().equals(o)) {
-                                synchronized (iterator) {
-                                    iterator.remove();
-                                }
-                                synchronized (result) {
-                                    result[0] = true;
+                            synchronized (iterator) {
+                                if (iterator.next().equals(o)) {
+                                    synchronized (iterator) {
+                                        iterator.remove();
+                                    }
+                                    synchronized (result) {
+                                        result[0] = true;
+                                    }
                                 }
                             }
                         }
@@ -154,63 +161,70 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
         values[0] = null;
         values[1] = null;
         mIndex = NULL_INDEX;
+        mHashCode = null;
+        mNullKey = false;
         mSize = 0;
     }
 
     @Override
     public final boolean remove(@Nullable final Long pKey) {
         final boolean[] result = new boolean[1];
-        final HashSet<Long>[] last = new HashSet[1];
-        Parallel.Operation<HashSet<Long>> operation = new Parallel.Operation<HashSet<Long>>() {
-            HashSet<Long> previous = null;
-            @Override
-            public void perform(HashSet<Long> pParameter) {
-                if (pParameter.contains(pKey)) {
-                    synchronized (result) {
-                        result[0] = pParameter.remove(pKey);
-                    }
-                    if (result[0]) {
-                        synchronized (KeyLongSetIterator.this) {
-                            mSize--;
+        if (pKey == null && mNullKey) {
+            mNullKey = false;
+            result[0] = true;
+        } else {
+            final TreeSet<Long>[] last = new TreeSet[1];
+            Parallel.Operation<TreeSet<Long>> operation = new Parallel.Operation<TreeSet<Long>>() {
+                TreeSet<Long> previous = null;
+                @Override
+                public void perform(TreeSet<Long> pParameter) {
+                    if (pParameter.contains(pKey)) {
+                        synchronized (result) {
+                            result[0] = pParameter.remove(pKey);
+                        }
+                        if (result[0]) {
+                            synchronized (KeyLongSetIterator.this) {
+                                mSize--;
+                            }
+                        }
+                        synchronized (this) {
+                            previous = pParameter;
+                        }
+                    } else if (result[0] && previous != null) {
+                        Set<Long> remove = new HashSet<>();
+                        for (Long l : pParameter) {
+                            if (previous.size() != Integer.MAX_VALUE) {
+                                if (!previous.add(l)) throw new RuntimeException("The value has not been added");
+                                if (!remove.add(l)) throw new RuntimeException("The value has not been added");
+                            } else {
+                                break;
+                            }
+                        }
+                        for (Long l : remove) {
+                            if (!pParameter.remove(l)) throw new RuntimeException("The value has not been removed");
                         }
                     }
-                    synchronized (this) {
-                        previous = pParameter;
-                    }
-                } else if (result[0] && previous != null) {
-                    Set<Long> remove = new HashSet<>();
-                    for (Long l : pParameter) {
-                        if (previous.size() != Integer.MAX_VALUE) {
-                            if (!previous.add(l)) throw new RuntimeException("The value has not been added");
-                            if (!remove.add(l)) throw new RuntimeException("The value has not been added");
-                        } else {
-                            break;
-                        }
-                    }
-                    for (Long l : remove) {
-                        if (!pParameter.remove(l)) throw new RuntimeException("The value has not been removed");
+                    synchronized (last) {
+                        last[0] = pParameter;
                     }
                 }
-                synchronized (last) {
-                    last[0] = pParameter;
-                }
-            }
 
-            @Override
-            public boolean follow() {
-                return !result[0];
+                @Override
+                public boolean follow() {
+                    return !result[0];
+                }
+            };
+            for (int arrayIndex=0;arrayIndex<values.length;arrayIndex++) {
+                if (!values[arrayIndex].isEmpty()) {
+                    Parallel.For(values[arrayIndex], operation);
+                }
             }
-        };
-        for (int arrayIndex=0;arrayIndex<values.length;arrayIndex++) {
-            if (!values[arrayIndex].isEmpty()) {
-                Parallel.For(values[arrayIndex], operation);
-            }
-        }
-        if (last[0] != null && last[0].isEmpty()) {
-            if (values[0].contains(last[0])) {
-                if (!values[0].remove(last[0])) throw new RuntimeException("The last empty HashSet has not been removed");
-            } else {
-                if (!values[1].remove(last[0])) throw new RuntimeException("The last empty HashSet has not been removed");
+            if (last[0] != null && last[0].isEmpty()) {
+                if (values[0].contains(last[0])) {
+                    if (!values[0].remove(last[0])) throw new RuntimeException("The last empty HashSet has not been removed");
+                } else {
+                    if (!values[1].remove(last[0])) throw new RuntimeException("The last empty HashSet has not been removed");
+                }
             }
         }
 
@@ -277,6 +291,8 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
         values[0].clear();
         values[1].clear();
         mIndex = NULL_INDEX;
+        mHashCode = null;
+        mNullKey = false;
         mSize = 0;
     }
 
@@ -316,52 +332,90 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
             public Iterator<Collection<Long>> iterator() {
                 return new Iterator<Collection<Long>>() {
 
-                    private HashSet<HashSet<Long>>[] values = KeyLongSetIterator.this.values;
+                    private LinkedList<TreeSet<Long>>[] values = KeyLongSetIterator.this.values;
                     private transient volatile long mIndex = NULL_INDEX;
-                    private transient volatile long mSize = (long) values[0].size() + values[1].size();
+                    private transient volatile long mSize = (long) values[0].size() + values[1].size() + ((mNullKey)?1:0);
 
                     @Override
                     public boolean hasNext() {
                         return mIndex + 1 < mSize;
                     }
 
+                    private final Long[] keyMoved = new Long[1];
                     @Override
                     public Collection<Long> next() {
                         final Collection<Long>[] result = new Collection[1];
                         final int arrayIndex = (int) (++mIndex / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
                         final long[] traveled = new long[1];
                         traveled[0] = (arrayIndex == 1)? MAX_COLLECTION_SIZE :0;
-                        Parallel.For(values[arrayIndex], new Parallel.Operation<HashSet<Long>>() {
-                            @Override
-                            public void perform(HashSet<Long> pParameter) {
-                                if (mIndex == traveled[0]) {
-                                    synchronized (result) {
-                                        result[0] = pParameter;
+                        if (mNullKey) {
+                            Parallel.For(values[arrayIndex], new Parallel.Operation<TreeSet<Long>>() {
+                                @Override
+                                public void perform(TreeSet<Long> pParameter) {
+                                    if (pParameter.first().compareTo(null) > 0 && pParameter.last().compareTo(null) > 0) {
+                                        synchronized (keyMoved) {
+                                            keyMoved[0] = pParameter.last();
+                                        }
+                                        if (!pParameter.remove(pParameter.last()))
+                                            throw new RuntimeException("The value has not been removed");
+                                        if (!pParameter.add(null))
+                                            throw new RuntimeException("The value has not been added");
+                                    } else if (keyMoved[0] != null) {
+                                        long key = keyMoved[0];
+                                        synchronized (keyMoved) {
+                                            keyMoved[0] = pParameter.last();
+                                        }
+                                        if (!pParameter.remove(pParameter.last()))
+                                            throw new RuntimeException("The value has not been removed");
+                                        if (!pParameter.add(key))
+                                            throw new RuntimeException("The value has not been added");
+                                    } else {
+
+                                    }
+                                    synchronized (traveled) {
+                                        traveled[0]++;
                                     }
                                 }
-                                synchronized (traveled) {
-                                    traveled[0]++;
-                                }
-                            }
 
-                            @Override
-                            public boolean follow() {
-                                return mIndex >= traveled[0];
-                            }
-                        });
+                                @Override
+                                public boolean follow() {
+                                    return mIndex >= traveled[0];
+                                }
+                            });
+                        } else {
+                            Parallel.For(values[arrayIndex], new Parallel.Operation<TreeSet<Long>>() {
+                                @Override
+                                public void perform(TreeSet<Long> pParameter) {
+                                    if (mIndex == traveled[0]) {
+                                        synchronized (result) {
+                                            result[0] = pParameter;
+                                        }
+                                    }
+                                    synchronized (traveled) {
+                                        traveled[0]++;
+                                    }
+                                }
+
+                                @Override
+                                public boolean follow() {
+                                    return mIndex >= traveled[0];
+                                }
+                            });
+                        }
+
                         return result[0];
                     }
 
                     @Override
                     public void remove() {
                         if (mIndex == NULL_INDEX) throw new IllegalStateException(String.valueOf(NULL_INDEX));
-                        final int arrayIndex = (int) (++mIndex / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
+                        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
                         final long[] traveled = new long[1];
                         traveled[0] = (arrayIndex == 1)? MAX_COLLECTION_SIZE :0;
-                        final HashSet<Long>[] remove = new HashSet[1];
-                        Parallel.For(values[arrayIndex], new Parallel.Operation<HashSet<Long>>() {
+                        final TreeSet<Long>[] remove = new TreeSet[1];
+                        Parallel.For(values[arrayIndex], new Parallel.Operation<TreeSet<Long>>() {
                             @Override
-                            public void perform(HashSet<Long> pParameter) {
+                            public void perform(TreeSet<Long> pParameter) {
                                 if (mIndex == traveled[0]) {
                                     synchronized (remove) {
                                         remove[0] = pParameter;
@@ -380,7 +434,7 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
                         if (remove[0] != null) {
                             if (!values[arrayIndex].remove(remove[0])) throw new RuntimeException("The set has not been removed");
                             while (values[0].size() < Integer.MAX_VALUE && !values[1].isEmpty()) {
-                                HashSet<Long> set = values[1].iterator().next();
+                                TreeSet<Long> set = values[1].iterator().next();
                                 values[0].add(set);
                                 values[1].remove(set);
                             }
@@ -438,7 +492,7 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
                 @Override
                 public boolean follow() {
-                    return true;
+                    return result[0] == 0;
                 }
             });
         }
@@ -447,66 +501,178 @@ public final class KeyLongSetIterator extends KeySetIterator<Long> {
 
     @Override
     public final void add(@Nullable final Long pEntity) {
-        if (this.isEmpty()) {
-            values[0].add(new HashSet<Long>(){
-                {
-                    if (!add(pEntity)) throw new RuntimeException("The value has not been added");
-                }
-            });
-            mSize++;
+        final boolean[] contain = new boolean[1];
+        if (pEntity == null) {
+            if (mNullKey) contain[0] = true;
+            else mNullKey = true;
         } else {
-            final boolean[] contain = new boolean[1];
-            final long[] traveled = new long[1];
-            for (int arrayIndex=0; arrayIndex<values.length; arrayIndex++) {
-                final int finalArrayIndex = arrayIndex;
-                Parallel.For(values[arrayIndex], new Parallel.Operation<HashSet<Long>>() {
-                    @Override
-                    public void perform(HashSet<Long> pParameter) {
-                        if (pParameter.contains(pEntity)) {
-                            synchronized (contain) {
-                                contain[0] = true;
+            TreeSet<Long> myTreeSet = new TreeSet<Long>() {
+
+                @Override
+                public boolean add(@NotNull Long aLong) {
+                    boolean result = super.add(aLong);
+                    if (result) {
+                        if (mHashCode == null) {
+                            mHashCode = aLong;
+                        } else {
+                            mHashCode |= aLong;
+                        }
+                    }
+                    return result;
+                }
+
+                @Override
+                public boolean remove(@NotNull final Object o) {
+                    boolean result = super.remove(o);
+                    if (result) {
+                        mHashCode = null;
+                        Parallel.For(this, new Parallel.Operation<Long>() {
+                            @Override
+                            public void perform(Long pParameter) {
+                                if (mHashCode == null) {
+                                    synchronized (KeyLongSetIterator.this) {
+                                        mHashCode = (Long)o;
+                                    }
+                                } else {
+                                    synchronized (KeyLongSetIterator.this) {
+                                        mHashCode |= (Long)o;
+                                    }
+                                }
+                            }
+
+                            @Override
+                            public boolean follow() {
+                                return true;
+                            }
+                        });
+                    }
+                    return result;
+                }
+
+                @Override
+                public boolean contains(@NotNull final Object o) {
+                    final boolean[] result = new boolean[1];
+                    if (mHashCode != null && (mHashCode & (Long)o) == (Long)o) {
+                        final TreeSet<Long> treeSet = this;
+                        Parallel.For(treeSet, new Parallel.Operation<Long>() {
+                            Long previous = null;
+                            @Override
+                            public void perform(Long pParameter) {
+                                if (o.equals(pParameter)) {
+                                    synchronized (result) {
+                                        result[0] = true;
+                                    }
+                                }
+                            }
+
+                            @Override
+                            public boolean follow() {
+                                return ((previous == null) || (Long)o >= previous) && (((Long)o <= treeSet.first()) && (treeSet.first().equals(treeSet.last()) || ((Long)o <= treeSet.last()))) && !result[0];
+                            }
+                        });
+                    }
+                    return  result[0];
+                }
+            };
+
+            if (this.isEmpty()) {
+                if (!myTreeSet.add(pEntity)) throw new RuntimeException("The value has not been added");
+                values[0].add(myTreeSet);
+            } else {
+                final TreeSet<Long>[] target = new TreeSet[1];
+                final LinkedList<TreeSet<Long>>[] followTarget = new LinkedList[2];
+                followTarget[0] = new LinkedList<>();
+                followTarget[1] = new LinkedList<>();
+                for (LinkedList<TreeSet<Long>> linkedList : values) {
+                    Parallel.For(linkedList, new Parallel.Operation<TreeSet<Long>>() {
+                        @Override
+                        public void perform(TreeSet<Long> pParameter) {
+                            if (pParameter.contains(pEntity)) {
+                                synchronized (contain) {
+                                    contain[0] = true;
+                                }
+                            } else if (pParameter.first() == null || (pParameter.first() != null && pParameter.first().compareTo(pEntity) < 0)) {
+                                synchronized (target) {
+                                    target[0] = pParameter;
+                                }
+                            } else if (target[0] != null) {
+                                if (followTarget[0].size() == Integer.MAX_VALUE) {
+                                    synchronized (followTarget) {
+                                        followTarget[1].add(pParameter);
+                                    }
+                                } else {
+                                    synchronized (followTarget) {
+                                        followTarget[0].add(pParameter);
+                                    }
+                                }
                             }
                         }
-                        synchronized (traveled) {
-                            traveled[0]+=pParameter.size();
+
+                        @Override
+                        public boolean follow() {
+                            return (target[0] == null || target[0].size() == Integer.MAX_VALUE) && !contain[0];
                         }
-                        if (!contain[0] && traveled[0] == mSize) {
-                            if (pParameter.size() == Integer.MAX_VALUE) {
-                                HashSet<Long> set = new HashSet<>();
-                                if (set.add(pEntity)) {
-                                    synchronized (values) {
-                                        if (values[finalArrayIndex].add(set)) {
-                                            synchronized (KeyLongSetIterator.this) {
-                                                KeyLongSetIterator.this.mSize++;
-                                            }
-                                        } else {
-                                            throw new RuntimeException("The value has not been added");
+                    });
+                }
+                if (!contain[0]) {
+                    if (target[0].size() == Integer.MAX_VALUE) {
+                        if (followTarget[0].size() == 0) {
+                            final int arrayIndex = (int) ((mSize-1) / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
+                            if (!myTreeSet.add(pEntity))
+                                throw new RuntimeException("The value has not been added");
+                            if (!values[arrayIndex].add(myTreeSet))
+                                throw new RuntimeException("The value has not been added");
+                        } else {
+                            final Long[] add = new Long[1];
+                            final TreeSet<Long>[] lastTreeSet = new TreeSet[1];
+                            for (LinkedList<TreeSet<Long>> linkedList : followTarget) {
+                                Parallel.For(linkedList, new Parallel.Operation<TreeSet<Long>>() {
+                                    @Override
+                                    public void perform(TreeSet<Long> pParameter) {
+                                        Long last = pParameter.last();
+                                        if (!pParameter.remove(last))
+                                            throw new RuntimeException("The value has not been removed");
+                                        pParameter.add(add[0]);
+                                        synchronized (add) {
+                                            add[0] = last;
+                                        }
+                                        synchronized (lastTreeSet) {
+                                            lastTreeSet[0] = pParameter;
                                         }
                                     }
+
+                                    @Override
+                                    public boolean follow() {
+                                        return true;
+                                    }
+                                });
+                            }
+                            if (lastTreeSet[0] != null) {
+                                if (lastTreeSet[0].size() == Integer.MAX_VALUE) {
+                                    final int arrayIndex = (int) ((mSize-1) / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
+                                    if (!myTreeSet.add(add[0]))
+                                        throw new RuntimeException("The value has not been added");
+                                    if (!values[arrayIndex].add(myTreeSet))
+                                        throw new RuntimeException("The value has not been added");
                                 } else {
-                                    throw new RuntimeException("The value has not been added");
+                                    if (!lastTreeSet[0].add(add[0]))
+                                        throw new RuntimeException("The value has not been added");
                                 }
                             } else {
-                                if (pParameter.add(pEntity)) {
-                                    synchronized (KeyLongSetIterator.this) {
-                                        KeyLongSetIterator.this.mSize++;
-                                    }
-                                } else {
-                                    throw new RuntimeException("The value has not been added");
-                                }
+                                throw new RuntimeException();
                             }
-                        }
-                    }
 
-                    @Override
-                    public boolean follow() {
-                        return !contain[0];
+                        }
+                    } else {
+                        if (!target[0].add(pEntity))
+                            throw new RuntimeException("The value has not been added");
                     }
-                });
-                if (contain[0]) break;
+                }
             }
-            if (contain[0]) throw new ContainsException("The value is already present");
         }
+
+        if (contain[0]) throw new ContainsException("The value is already present");
+        mSize++;
     }
 
     protected final Long actual() {

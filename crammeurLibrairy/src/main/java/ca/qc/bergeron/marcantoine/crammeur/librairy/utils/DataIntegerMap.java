@@ -3,10 +3,13 @@ package ca.qc.bergeron.marcantoine.crammeur.librairy.utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.exceptions.ContainsException;
@@ -106,8 +109,128 @@ public final class DataIntegerMap<T extends Data<Integer>> extends DataMap<Integ
         }
 
         @Override
-        public <E2 extends T> boolean retainAll(@NotNull EntryCollectionIterator<E2, Integer> pEntryCollectionIterator) {
+        public <E2 extends Entry<Integer, T>> boolean removeAll(@NotNull CollectionIterator<E2, Integer> pCollectionIterator) {
             return false;
+        }
+
+        @Override
+        public <E2 extends Entry<Integer, T>> boolean retainAll(@NotNull CollectionIterator<E2, Integer> pCollectionIterator) {
+            return false;
+        }
+
+        @Override
+        public <E2 extends T> boolean retainAll(@NotNull final EntryCollectionIterator<E2, Integer> pEntryCollectionIterator) {
+            final boolean[] result = new boolean[1];
+            result[0] = true;
+            final EntrySetIterator<T,Integer> retain = new EntryIntegerSetIterator();
+            for (Collection<Entry<Integer,E2>> collection : pEntryCollectionIterator.allCollections()) {
+                Parallel.For(collection, new Parallel.Operation<Entry<Integer, E2>>() {
+
+                    @Override
+                    public void perform(final Entry<Integer,E2> pParameter) {
+                        retain.add(new Entry<Integer, T>() {
+
+                            final Integer key = pParameter.getKey();
+
+                            @Override
+                            public Integer getKey() {
+                                return key;
+                            }
+
+                            @Override
+                            public T getValue() {
+                                return pParameter.getValue();
+                            }
+
+                            @Override
+                            public T setValue(T pValue) {
+                                java.util.Map<Field,Object> map = new HashMap<>();
+                                Class<?> clazz = pValue.getClass();
+                                Field[] fields;
+                                do {
+                                    fields = clazz.getDeclaredFields();
+                                    for (Field field : fields) {
+                                        boolean b = field.isAccessible();
+                                        field.setAccessible(true);
+                                        try {
+                                            map.put(field,field.get(pValue));
+                                        } catch (IllegalAccessException e) {
+                                            e.printStackTrace();
+                                            throw new RuntimeException(e);
+                                        } finally {
+                                            field.setAccessible(b);
+                                        }
+                                    }
+                                } while ((clazz = clazz.getSuperclass()) != null);
+                                try {
+                                    java.util.Map<Field,Object> map2 = new HashMap<>();
+                                    Class<?> clazz2 = pParameter.getValue().getClass();
+                                    Field[] fields2;
+                                    do {
+                                        fields2 = clazz2.getDeclaredFields();
+                                        for (Field field : fields2) {
+                                            boolean b = field.isAccessible();
+                                            try {
+                                                field.setAccessible(true);
+                                                map2.put(field,field.get(pParameter.getValue()));
+                                            } finally {
+                                                field.setAccessible(b);
+                                            }
+                                        }
+                                    } while ((clazz2 = clazz2.getSuperclass()) != null);
+                                    E2 value = ca.qc.bergeron.marcantoine.crammeur.librairy.lang.Object.createObject((Class<E2>) pParameter.getValue().getClass(),map2);
+                                    return pParameter.setValue(ca.qc.bergeron.marcantoine.crammeur.librairy.lang.Object.updateObject(value,map));
+                                } catch (IllegalAccessException e) {
+                                    e.printStackTrace();
+                                    throw new RuntimeException(e);
+                                } catch (InstantiationException e) {
+                                    e.printStackTrace();
+                                    throw new RuntimeException(e);
+                                } catch (InvocationTargetException e) {
+                                    e.printStackTrace();
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        });
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return true;
+                    }
+                });
+            }
+
+            final EntrySetIterator<T,Integer> delete = new EntryIntegerSetIterator();
+            Parallel.For(this.currentCollection(), new Parallel.Operation<Entry<Integer, T>>() {
+                @Override
+                public void perform(Entry<Integer, T> pParameter) {
+                    if (!retain.contains(pParameter)) {
+                        delete.add(pParameter);
+                    }
+                }
+
+                @Override
+                public boolean follow() {
+                    return true;
+                }
+            });
+
+            Parallel.For(delete.currentCollection(), new Parallel.Operation<Entry<Integer, T>>() {
+                @Override
+                public void perform(Entry<Integer, T> pParameter) {
+                    synchronized (result) {
+                        result[0] = EntryIntegerSetIterator.this.remove(pParameter);
+                        if (!result[0]) throw new RuntimeException();
+                    }
+                }
+
+                @Override
+                public boolean follow() {
+                    return result[0];
+                }
+            });
+            return result[0];
         }
 
         @Override
@@ -156,6 +279,35 @@ public final class DataIntegerMap<T extends Data<Integer>> extends DataMap<Integ
             return result[0];
         }
 
+        protected final Entry<Integer, T> actual() {
+            if (mIndex != NULL_INDEX && mIndex < values.size()) {
+                final Entry<Integer, T>[] result = new Entry[1];
+                final int[] index = new int[1];
+                index[0] = NULL_INDEX;
+                Parallel.For(values, new Parallel.Operation<Entry<Integer, T>>() {
+                    @Override
+                    public void perform(Entry<Integer, T> pParameter) {
+                        synchronized (index) {
+                            index[0]++;
+                        }
+                        if (index[0] == mIndex) {
+                            synchronized (result) {
+                                result[0] = pParameter;
+                            }
+                        }
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return index[0] < mIndex;
+                    }
+                });
+                return result[0];
+            } else
+                throw new IndexOutOfBoundsException(String.valueOf(mIndex));
+
+        }
+
         @Override
         public final void add(@Nullable Entry<Integer, T> pEntity) {
             if (values.contains(pEntity)) throw new ContainsException("the value is already present");
@@ -175,8 +327,12 @@ public final class DataIntegerMap<T extends Data<Integer>> extends DataMap<Integ
 
         @Nullable
         @Override
-        public Entry<Integer, T> next() {
-            return null;
+        public final Entry<Integer, T> next() {
+            if (hasNext()) {
+                mIndex++;
+                return actual();
+            } else
+                throw new NoSuchElementException();
         }
 
         @Override
@@ -192,8 +348,12 @@ public final class DataIntegerMap<T extends Data<Integer>> extends DataMap<Integ
 
         @Nullable
         @Override
-        public Entry<Integer, T> previous() {
-            return null;
+        public final Entry<Integer, T> previous() {
+            if (hasPrevious()) {
+                mIndex--;
+                return actual();
+            } else
+                throw new NoSuchElementException();
         }
 
         @Override
@@ -212,47 +372,47 @@ public final class DataIntegerMap<T extends Data<Integer>> extends DataMap<Integ
     protected final java.util.Map<Integer, T> values = new HashMap<>();
 
     @Override
-    public Integer size() {
+    public final Integer size() {
         return values.size();
     }
 
     @Override
-    public boolean isEmpty() {
+    public final boolean isEmpty() {
         return values.isEmpty();
     }
 
     @Override
-    public boolean containsKey(Integer pKey) {
+    public final boolean containsKey(Integer pKey) {
         return values.containsKey(pKey);
     }
 
     @Override
-    public boolean containsValue(T pValue) {
+    public final boolean containsValue(T pValue) {
         return values.containsValue(pValue);
     }
 
     @Override
-    public T get(Integer pKey) {
+    public final T get(Integer pKey) {
         return values.get(pKey);
     }
 
     @Override
-    public T put(Integer pKey, T pValue) {
+    public final T put(Integer pKey, T pValue) {
         return values.put(pKey,pValue);
     }
 
     @Override
-    public T remove(Integer pKey) {
+    public final T remove(Integer pKey) {
         return values.remove(pKey);
     }
 
     @Override
-    public void clear() {
+    public final void clear() {
         values.clear();
     }
 
     @Override
-    public KeySetIterator<Integer> keySet() {
+    public final KeySetIterator<Integer> keySet() {
         final KeySetIterator<Integer> result = new KeyIntegerSetIterator();
         Parallel.For(values.keySet(), new Parallel.Operation<Integer>() {
             @Override
@@ -271,8 +431,8 @@ public final class DataIntegerMap<T extends Data<Integer>> extends DataMap<Integ
     }
 
     @Override
-    public CollectionIterator<T, Integer> values() {
-        final CollectionIterator<T, Integer> result = new DataIntegerListIterator<>();
+    public final CollectionIterator<T, Integer> values() {
+        final CollectionIterator<T, Integer> result = new IntegerListIterator<>();
         Parallel.For(values.values(), new Parallel.Operation<T>() {
             @Override
             public void perform(T pParameter) {
@@ -290,7 +450,7 @@ public final class DataIntegerMap<T extends Data<Integer>> extends DataMap<Integ
     }
 
     @Override
-    public EntrySetIterator<T, Integer> entrySet() {
+    public final EntrySetIterator<T, Integer> entrySet() {
         final EntryIntegerSetIterator result = new EntryIntegerSetIterator();
         Parallel.For(values.keySet(), new Parallel.Operation<Integer>() {
             @Override

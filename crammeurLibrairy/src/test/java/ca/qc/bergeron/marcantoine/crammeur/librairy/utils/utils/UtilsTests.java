@@ -4,18 +4,18 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.exceptions.ContainsException;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
-import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.DataIntegerListIterator;
-import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.DataLongListIterator;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.IntegerListIterator;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.LongListIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.KeyLongSetIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.KeySetIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.Parallel;
-import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.ListIterator;
 
 /**
  * Created by Marc-Antoine on 2017-09-19.
@@ -25,8 +25,8 @@ public class UtilsTests {
 
     @Test
     public void testDataIntegerListIterator() {
-        DataListIterator<Data<Integer>, Integer> dc;
-        dc = new DataIntegerListIterator<Data<Integer>>();
+        ListIterator<Data<Integer>, Integer> dc;
+        dc = new IntegerListIterator<Data<Integer>>();
         Data<Integer> data = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Integer>() {
             Integer Id = null;
 
@@ -47,9 +47,9 @@ public class UtilsTests {
 
     @Test
     public void testDataLongListIterator() throws InterruptedException {
-        final long count = 3500000*2;
-        final DataListIterator<Data<Long>, Long> dli = new DataLongListIterator<Data<Long>>();
-        final DataListIterator<Data<Long>, Long> dli2 = new DataLongListIterator<>();
+        final long count = 3500000;
+        final ListIterator<Data<Long>, Long> dli = new LongListIterator<Data<Long>>();
+        final ListIterator<Data<Long>, Long> dli2 = new LongListIterator<>();
         Assert.assertTrue(dli.equals(dli2));
         Assert.assertTrue(dli.isEmpty());
         final Data<Long> data = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
@@ -120,11 +120,10 @@ public class UtilsTests {
             Assert.assertTrue(dli.next().getId() == null);
         }
 
-        final ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
-        try {
-            final Runnable runnable = new Runnable() {
-                @Override
-                public void run() {
+        final ExecutorService exec = Executors.newSingleThreadExecutor();
+        final Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
                 for (long index = 0; index < count; index++) {
                     final long i = index;
                     final Data<Long> data2 = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
@@ -143,25 +142,25 @@ public class UtilsTests {
                     };
                     synchronized (dli) {
                         dli.addAtEnd(data2);
-                        synchronized (dli2) {
-                            dli2.addAtEnd(data2);
-                        }
+
+                    }
+                    synchronized (dli2) {
+                        dli2.addAtEnd(data2);
                     }
                     System.out.println("Index : " + String.valueOf(index));
                 }
-                }
-            };
+            }
+        };
+        try {
             exec.submit(runnable);
-
-
         } finally {
             exec.shutdown();
             while (!exec.isTerminated()) {
                 Thread.sleep(0,1);
             }
         }
-        final DataLongListIterator<Data<Long>> dl3 = new DataLongListIterator<>();
-        for (Collection<Data<Long>> collection : dli.allCollections()){
+        final LongListIterator<Data<Long>> dl3 = new LongListIterator<>();
+        for (List<Data<Long>> collection : dli.<List<Data<Long>>>allCollections()){
             Parallel.For(collection, new Parallel.Operation<Data<Long>>() {
                 @Override
                 public void perform(Data<Long> pParameter) {
@@ -222,7 +221,7 @@ public class UtilsTests {
 
     @Test
     public void testKeyLongSetIterator() {
-        KeySetIterator<Long> ksi = new KeyLongSetIterator();
+        final KeySetIterator<Long> ksi = new KeyLongSetIterator();
         KeySetIterator<Long> ksi2 = new KeyLongSetIterator();
         Assert.assertTrue(ksi.equals(ksi2));
         Assert.assertTrue(ksi.isEmpty() && ksi2.isEmpty());
@@ -241,9 +240,37 @@ public class UtilsTests {
             ksi.add(0L);
             Assert.fail();
         } catch (ContainsException e) {
-            e.printStackTrace();
+            //Is ok
         }
-
+        ksi.clear();
+        Assert.assertTrue(ksi.isEmpty());
+        final long count = 3500000;
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        final Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                for (long index = 0; index < count; index++) {
+                    synchronized (ksi) {
+                        ksi.add(index);
+                    }
+                    System.out.println("Index : " + String.valueOf(index));
+                }
+            }
+        };
+        try {
+            executorService.submit(runnable);
+        } finally {
+            executorService.shutdown();
+            while (!executorService.isTerminated()) {
+                try {
+                    Thread.sleep(0,1);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        Assert.assertTrue(ksi.size().equals(count));
     }
 
     @Test

@@ -14,7 +14,7 @@ import java.util.Iterator;
 public interface CollectionIterator<E, S extends Serializable> extends Iterable<E>, Iterator<E> {
 
     int NULL_INDEX = -1;
-    int MIN_INDEX = 0;
+    int MIN_INDEX = NULL_INDEX+1;
     int MAX_COLLECTION_SIZE = Integer.MAX_VALUE;
     @NotNull
     S size();
@@ -60,7 +60,7 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterable<
     Collection<E> currentCollection();
 
     @NotNull
-    Iterable<Collection<E>> allCollections();
+    <T extends Collection<E>> Iterable<T> allCollections();
 
     /**
      * Return specific collection where mIndex is
@@ -95,4 +95,13 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterable<
     <E2 extends E> boolean containsAll(@NotNull CollectionIterator<E2, S> pCollectionIterator);
 
     boolean equals(@Nullable CollectionIterator<E, S> pCollectionIterator);
+
+    boolean remove(@Nullable E pData);
+
+    <E2 extends E> boolean removeAll(@NotNull CollectionIterator<E2, S> pCollectionIterator);
+
+    <E2 extends E> boolean retainAll(@NotNull CollectionIterator<E2, S> pCollectionIterator);
+
+    void clear();
+
 }

@@ -7,29 +7,27 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.NoSuchElementException;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator;
-import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataCollectionIterator;
-import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.ListIterator;
 
 /**
  * Created by Marc-Antoine on 2017-09-18.*/
 
 
 
-public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.qc.bergeron.marcantoine.crammeur.librairy.utils.DataListIterator<T, Integer> {
+public final class IntegerListIterator<T extends Data<Integer>> extends ca.qc.bergeron.marcantoine.crammeur.librairy.utils.ListIterator<T, Integer> {
 
     protected final LinkedList<T> values;
     protected transient volatile int mIndex = NULL_INDEX;
 
-    private DataIntegerListIterator(LinkedList<T> pValues) {
+    private IntegerListIterator(LinkedList<T> pValues) {
         values = pValues;
     }
 
-    public DataIntegerListIterator() {
+    public IntegerListIterator() {
         values = new LinkedList<>();
     }
 
@@ -55,7 +53,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     @Override
-    public final <E extends T> void addAll(@NotNull final Integer pIndex, @NotNull DataCollectionIterator<E, Integer> pDataCollectionIterator) {
+    public final <E extends T> void addAll(@NotNull final Integer pIndex, @NotNull CollectionIterator<E, Integer> pDataCollectionIterator) {
         Parallel.For(pDataCollectionIterator.currentCollection(), new Parallel.Operation<E>() {
             int index = pIndex;
             @Override
@@ -73,6 +71,11 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
                 return false;
             }
         });
+    }
+
+    @Override
+    public T remove(Integer pIndex) {
+        return null;
     }
 
     @NotNull
@@ -169,16 +172,17 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
      * Use currentCollection
      * @return
      */
+    @SuppressWarnings("unchecked")
     @Deprecated
     @NotNull
     @Override
-    public final Iterable<Collection<T>> allCollections() {
-        return new Iterable<Collection<T>>() {
+    public final Iterable<List<T>> allCollections() {
+        return new Iterable<List<T>>() {
             @NotNull
             @Override
-            public Iterator<Collection<T>> iterator() {
-                return new Iterator<Collection<T>>() {
-                    private final LinkedList<T> values = DataIntegerListIterator.this.values;
+            public Iterator<List<T>> iterator() {
+                return new Iterator<List<T>>() {
+                    private final LinkedList<T> values = IntegerListIterator.this.values;
                     private transient volatile int mIndex = NULL_INDEX;
                     private transient volatile int mSize = 1;
 
@@ -188,7 +192,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
                     }
 
                     @Override
-                    public Collection<T> next() {
+                    public List<T> next() {
                         return values;
                     }
                 };
@@ -308,7 +312,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     public final <E extends T> boolean retainAll(@NotNull CollectionIterator<E, Integer> pCollectionIterator) {
         final boolean[] result = new boolean[1];
         result[0] = true;
-        final DataIntegerListIterator<T> retain = new DataIntegerListIterator<>();
+        final IntegerListIterator<T> retain = new IntegerListIterator<>();
         for (Collection<E> collection : pCollectionIterator.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
                 @Override
@@ -323,7 +327,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
             });
         }
 
-        final DataIntegerListIterator<T> delete = new DataIntegerListIterator<>();
+        final IntegerListIterator<T> delete = new IntegerListIterator<>();
         Parallel.For(this.currentCollection(), new Parallel.Operation<T>() {
             @Override
             public void perform(T pParameter) {
@@ -343,7 +347,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
             @Override
             public void perform(T pParameter) {
                 synchronized (result) {
-                    result[0] = DataIntegerListIterator.this.remove(pParameter);
+                    result[0] = IntegerListIterator.this.remove(pParameter);
                 }
             }
 
@@ -364,20 +368,20 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
 
     @NotNull
     @Override
-    public ListIterator<T> listIterator() {
+    public java.util.ListIterator listIterator() {
         return values.listIterator();
     }
 
     @NotNull
     @Override
-    public ListIterator<T> listIterator(@NotNull Integer pIndex) {
+    public java.util.ListIterator listIterator(@NotNull Integer pIndex) {
         return values.listIterator(pIndex);
     }
 
     @NotNull
     @Override
-    public final DataListIterator<T, Integer> subDataListIterator(@NotNull final Integer pIndex1, @NotNull final Integer pIndex2) {
-        final DataListIterator<T, Integer> result = new DataIntegerListIterator<>();
+    public final ListIterator<T, Integer> subDataListIterator(@NotNull final Integer pIndex1, @NotNull final Integer pIndex2) {
+        final ListIterator<T, Integer> result = new IntegerListIterator<>();
         Parallel.Operation<T> operation = new Parallel.Operation<T>() {
             long index = NULL_INDEX;
             boolean follow = true;
@@ -437,6 +441,6 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     @NotNull
     @Override
     public final Iterator<T> iterator() {
-        return new DataIntegerListIterator<>(values);
+        return new IntegerListIterator<>(values);
     }
 }
