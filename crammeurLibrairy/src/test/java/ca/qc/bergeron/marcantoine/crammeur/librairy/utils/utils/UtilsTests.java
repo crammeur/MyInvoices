@@ -4,6 +4,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -185,7 +186,8 @@ public class UtilsTests {
         //Assert.assertTrue(dli.equals(dl3));
 
         //Assert.assertTrue(!dli.equals(dli2));
-        Assert.assertTrue(dli.currentCollection().remove(data));
+        Collection<Data<Long>> collection = dli.actualCollection();
+        Assert.assertTrue(collection.remove(data));
         for (int index = 0; index < 10; index++) {
             Data<Long> data3 = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
                 Long Id = null;
@@ -201,13 +203,14 @@ public class UtilsTests {
                     this.Id = pId;
                 }
             };
-            Assert.assertTrue(dli.currentCollection().remove(data3));
+            Assert.assertTrue(collection.remove(data3));
         }
-        Assert.assertTrue(!dli2.currentCollection().contains(data));
-        Assert.assertTrue(dli.currentCollection().remove(data2));
-        Assert.assertTrue(dli.currentCollection().size() == dli2.currentCollection().size());
+
+        Assert.assertTrue(!collection.contains(data));
+        Assert.assertTrue(collection.remove(data2));
+        Assert.assertTrue(collection.size() == dli2.nextCollection().size());
         Assert.assertTrue(dli.equals(dli2));
-        Assert.assertTrue(dli.currentCollection().remove(new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
+        Assert.assertTrue(collection.remove(new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
             Long Id = count-1;
 
             @Nullable

@@ -10,7 +10,7 @@ import java.util.LinkedList;
  * Created by Marc-Antoine on 2017-09-07.
  */
 
-public interface Data<K extends Serializable> extends Comparable<Data<K>>, Serializable {
+public interface Data<K extends Serializable> extends Comparable<Data<K>> {
     @Nullable
     K getId();
 

@@ -20,6 +20,10 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.ListIterator;
 
 
 public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.qc.bergeron.marcantoine.crammeur.librairy.utils.ListIterator<T, Integer> implements DataListIterator<T,Integer> {
+    @Override
+    public Collection<T> actualCollection() {
+        return null;
+    }
 
     protected final LinkedList<T> values;
     protected transient volatile int mIndex = NULL_INDEX;
@@ -257,7 +261,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
 
     @Override
     public final <E extends T> void addAll(@NotNull final Integer pIndex, @NotNull CollectionIterator<E, Integer> pDataCollectionIterator) {
-        Parallel.For(pDataCollectionIterator.currentCollection(), new Parallel.Operation<E>() {
+        Parallel.For(pDataCollectionIterator.nextCollection(), new Parallel.Operation<E>() {
             int index = pIndex;
             @Override
             public void perform(E pParameter) {
@@ -324,7 +328,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
                 return follow;
             }
         };
-        Parallel.For(this.currentCollection(), operation);
+        Parallel.For(this.nextCollection(), operation);
         return result[0];
     }
 
@@ -361,18 +365,24 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
                 return true;
             }
         };
-        Parallel.For(this.currentCollection(), operation);
+        Parallel.For(this.nextCollection(), operation);
         return result[0];
     }
 
     @NotNull
     @Override
-    public final List<T> currentCollection() {
+    public final List<T> nextCollection() {
         return values;
     }
 
+    @NotNull
+    @Override
+    public Collection<T> previousCollection() {
+        return null;
+    }
+
     /**
-     * Use currentCollection
+     * Use nextCollection
      * @return
      */
     //@SuppressWarnings("unchecked")
@@ -404,7 +414,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     /**
-     * Use currentCollection
+     * Use nextCollection
      * @param pIndex
      * @return
      */
@@ -413,7 +423,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     @Override
     public final List<T> collectionOf(@NotNull Integer pIndex) {
         if (pIndex < MIN_INDEX || pIndex > values.size() - 1) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
-        return currentCollection();
+        return nextCollection();
     }
 
     @NotNull
@@ -441,6 +451,12 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     @Override
     public final void add(@Nullable T pData) {
         values.add(mIndex,pData);
+    }
+
+    @Nullable
+    @Override
+    public T actual() {
+        return null;
     }
 
     @Override
@@ -531,7 +547,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
         }
 
         final DataIntegerListIterator<T> delete = new DataIntegerListIterator<>();
-        Parallel.For(this.currentCollection(), new Parallel.Operation<T>() {
+        Parallel.For(this.nextCollection(), new Parallel.Operation<T>() {
             @Override
             public void perform(T pParameter) {
                 if (!retain.contains(pParameter)){
@@ -545,7 +561,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
             }
         });
 
-        Parallel.For(this.currentCollection(), new Parallel.Operation<T>() {
+        Parallel.For(this.nextCollection(), new Parallel.Operation<T>() {
 
             @Override
             public void perform(T pParameter) {
@@ -583,7 +599,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
 
     @NotNull
     @Override
-    public final ListIterator<T, Integer> subDataListIterator(@NotNull final Integer pIndex1, @NotNull final Integer pIndex2) {
+    public final ListIterator<T, Integer> subListIterator(@NotNull final Integer pIndex1, @NotNull final Integer pIndex2) {
         final ListIterator<T, Integer> result = new DataIntegerListIterator<>();
         Parallel.Operation<T> operation = new Parallel.Operation<T>() {
             long index = NULL_INDEX;
@@ -610,7 +626,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
                 return follow;
             }
         };
-        Parallel.For(this.currentCollection(), operation);
+        Parallel.For(this.nextCollection(), operation);
         return result;
     }
 
@@ -621,12 +637,17 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     }
 
     @Override
+    public int collectionSize() {
+        return 0;
+    }
+
+    @Override
     public final boolean isEmpty() {
         return values.isEmpty();
     }
 
     @Override
-    public final int currentCollectionIndex() {
+    public final int collectionIndex() {
         return mIndex;
     }
 
@@ -639,5 +660,15 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     @Override
     public final int collectionIndexOf(@NotNull Integer pIndex) {
         return pIndex;
+    }
+
+    @Override
+    public boolean hasNextCollection() {
+        return false;
+    }
+
+    @Override
+    public boolean hasPreviousCollection() {
+        return false;
     }
 }

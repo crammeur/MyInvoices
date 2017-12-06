@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * Created by Marc-Antoine on 2017-11-23.
@@ -14,17 +15,18 @@ import java.util.Iterator;
 public interface CollectionIterator<E, S extends Serializable> extends Iterator<E> {
 
     int NULL_INDEX = -1;
-    int MIN_INDEX = NULL_INDEX+1;
+    int MIN_INDEX = 0;
     int MAX_COLLECTION_SIZE = Integer.MAX_VALUE;
+
     @NotNull
     S size();
 
     /**
-     * Return size of current specific collection
+     * Return size of actual collection
      *
-     * @return Size of current specific collection
+     * @return Size of actual collection
      */
-    int currentCollectionSize();
+    int collectionSize();
 
     /**
      * Return size of the specific collection where mIndex is
@@ -36,12 +38,7 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterator<
 
     boolean isEmpty();
 
-    /**
-     * Return mIndex for current data in currentCollection method
-     *
-     * @return Index for currentCollection method
-     */
-    int currentCollectionIndex();
+    int collectionIndex();
 
     /**
      * Return mIndex of specific collection where mIndex is
@@ -51,22 +48,44 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterator<
      */
     int collectionIndexOf(@NotNull S pIndex);
 
+    boolean hasNextCollection();
+
     /**
-     * Return the specific collection where mIndex is
+     * Increment index and return the next collection
      *
-     * @return Collection of current mIndex
+     * @return the next Collection
+     * @throws NoSuchElementException
      */
     @NotNull
-    Collection<E> currentCollection();
+    Collection<E> nextCollection() throws NoSuchElementException;
+
+    /**
+     * Return the actual collection
+     *
+     * @return actual Collection where index is
+     * @throws IndexOutOfBoundsException
+     */
+    Collection<E> actualCollection() throws IndexOutOfBoundsException;
+
+    boolean hasPreviousCollection();
+
+    /**
+     * Decrement index and return the previous collection
+     *
+     * @return the previous collection
+     * @throws NoSuchElementException
+     */
+    @NotNull
+    Collection<E> previousCollection() throws NoSuchElementException;
 
     @NotNull
     <T extends Collection<E>> Iterable<T> allCollections();
 
     /**
-     * Return specific collection where mIndex is
+     * Return specific collection where pIndex is
      *
      * @param pIndex Index
-     * @return Collection where mIndex is
+     * @return Specific collection where index is
      */
     @NotNull
     Collection<E> collectionOf(@NotNull S pIndex);
@@ -78,15 +97,36 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterator<
 
     int nextIndex();
 
+    /**
+     * Increment index and return the next element
+     *
+     * @return the next elements
+     * @throws NoSuchElementException
+     */
     @Nullable
-    E next();
+    E next() throws NoSuchElementException;
+
+    /**
+     * Return the actual element
+     *
+     * @return the actual element
+     * @throws IndexOutOfBoundsException
+     */
+    @Nullable
+    E actual() throws IndexOutOfBoundsException;
 
     boolean hasPrevious();
 
     int previousIndex();
 
+    /**
+     * Decrement index and return the previous element
+     *
+     * @return the previous element
+     * @throws IndexOutOfBoundsException
+     */
     @Nullable
-    E previous();
+    E previous() throws IndexOutOfBoundsException;
 
     void set(@Nullable E pEntity);
 

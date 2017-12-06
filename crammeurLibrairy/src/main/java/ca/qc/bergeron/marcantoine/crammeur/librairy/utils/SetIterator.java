@@ -10,7 +10,7 @@ import java.util.Collection;
  * Created by Marc-Antoine on 2017-11-23.
  */
 
-public abstract class SetIterator<E extends Serializable, S extends Serializable> extends CollectionIterator<E, S> implements ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.SetIterator<E,S> {
+public abstract class SetIterator<E, S extends Serializable> extends CollectionIterator<E, S> implements ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.SetIterator<E,S> {
 
     @Override
     public final <E2 extends E> boolean removeAll(@NotNull ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E2, S> pKeyCollectionIterator) {

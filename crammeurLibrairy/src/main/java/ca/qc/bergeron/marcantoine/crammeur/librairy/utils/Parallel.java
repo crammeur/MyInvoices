@@ -83,7 +83,11 @@ public final class Parallel {
                         result = iterator.next();
                     }
                     operation.perform(result);
-                    if (first) first = false;
+                    if (first) {
+                        synchronized (this) {
+                            first = false;
+                        }
+                    }
                 }
                 return null;
             }
@@ -189,7 +193,11 @@ public final class Parallel {
                         result = iterator.next();
                     }
                     operation.perform(result);
-                    if (first) first = false;
+                    if (first) {
+                        synchronized (this) {
+                            first = false;
+                        }
+                    }
                 }
                 return null;
             }
@@ -283,5 +291,9 @@ public final class Parallel {
     public interface Operation<T> {
         void perform(T pParameter);
         boolean follow();
+    }
+
+    public interface Running<T> extends Operation<T> {
+
     }
 }

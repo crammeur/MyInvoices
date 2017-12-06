@@ -35,20 +35,20 @@ public interface ListIterator<E, S extends Serializable> extends CollectionItera
 
     @NotNull
     @Override
-    List<E> currentCollection();
+    List<E> nextCollection();
 
     @NotNull
     @Override
     List<E> collectionOf(@NotNull S pIndex);
 
     @NotNull
-    java.util.ListIterator listIterator();
+    java.util.ListIterator<E> listIterator();
 
     @NotNull
-    java.util.ListIterator listIterator(@NotNull S pIndex);
+    java.util.ListIterator<E> listIterator(@NotNull S pIndex);
 
     @NotNull
-    ListIterator<E, S> subDataListIterator(@NotNull S pIndex1, @NotNull S pIndex2);
+    ListIterator<E, S> subListIterator(@NotNull S pIndex1, @NotNull S pIndex2);
 
     boolean equals(@Nullable ListIterator<E, S> pListIterator);
 }

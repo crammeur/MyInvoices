@@ -100,7 +100,7 @@ public abstract class Object implements Serializable {
         return result;
     }
 
-    public static <T> T cloneObject(@NotNull final T pObject) throws IllegalAccessException, InvocationTargetException, InstantiationException {
+    public static <T> T cloneObject(@NotNull final T pObject) {
         T result = null;
         Constructor constructor = null;
         for (Constructor c : pObject.getClass().getConstructors()) {
@@ -111,14 +111,36 @@ public abstract class Object implements Serializable {
         }
         if (constructor != null) {
             if (constructor.getParameterTypes().length == 0) {
-                result = (T) constructor.newInstance();
+                try {
+                    result = (T) constructor.newInstance();
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
             } else {
                 final Class<?>[] clazzs = constructor.getParameterTypes();
                 final java.lang.Object[] params = new java.lang.Object[clazzs.length];
                 for (int arrayIndex = 0; arrayIndex<clazzs.length && arrayIndex<params.length; arrayIndex++) {
                     params[arrayIndex] = Values.defaultValueFor(clazzs[arrayIndex]);
                 }
-                result = (T) constructor.newInstance(params);
+                try {
+                    result = (T) constructor.newInstance(params);
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
             }
             Class<?> clazz = pObject.getClass();
             Field[] fields;
@@ -130,6 +152,9 @@ public abstract class Object implements Serializable {
                         try {
                             field.setAccessible(true);
                             field.set(result,field.get(pObject));
+                        } catch (IllegalAccessException e) {
+                            e.printStackTrace();
+                            throw new RuntimeException(e);
                         } finally {
                             field.setAccessible(b);
                         }
@@ -232,7 +257,7 @@ public abstract class Object implements Serializable {
 
     @Override
     public boolean equals(final java.lang.Object pObject) {
-        return (pObject != null && (this.toString().equals(pObject.toString()) || this.getAddress().equals(pObject.toString())));
+        return (pObject != null && (this.getAddress().equals(pObject.toString()) || this.toString().equals(pObject.toString())));
     }
 
     @Override

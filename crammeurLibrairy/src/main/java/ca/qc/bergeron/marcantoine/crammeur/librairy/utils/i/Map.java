@@ -65,7 +65,7 @@ public interface Map<K extends Serializable, V> {
 
         @NotNull
         @Override
-        Set<Entry<K, T>> currentCollection();
+        Set<Entry<K, T>> nextCollection();
 
         @NotNull
         @Override

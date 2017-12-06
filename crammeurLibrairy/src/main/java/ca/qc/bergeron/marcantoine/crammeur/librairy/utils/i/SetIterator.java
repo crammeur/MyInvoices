@@ -10,10 +10,10 @@ import java.util.Set;
  * Created by Marc-Antoine on 2017-09-18.
  */
 
-public interface SetIterator<E extends Serializable, S extends Serializable> extends CollectionIterator<E, S> {
+public interface SetIterator<E, S extends Serializable> extends CollectionIterator<E, S> {
     @NotNull
     @Override
-    Set<E> currentCollection();
+    Set<E> nextCollection();
 
     @NotNull
     @Override
