@@ -92,9 +92,10 @@ public class UtilsTests {
         Assert.assertTrue(dli.hasNext());
         Assert.assertTrue(dli.next().getId() == null);
         Assert.assertTrue(dli.hasPrevious());
-        Assert.assertTrue(!dli.hasNext());
+        Assert.assertTrue(dli.hasPrevious());
         Assert.assertTrue(dli.previous().getId() == 1L);
         Assert.assertTrue(!dli.hasPrevious());
+        Assert.assertTrue(dli.hasNext());
         for (int index = 0; index < 10; index++) {
             Data<Long> data3 = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
                 Long Id = null;
@@ -112,8 +113,7 @@ public class UtilsTests {
             };
             dli.addAtEnd(data3);
         }
-        Assert.assertTrue(dli.hasNext());
-        dli.next();
+        Assert.assertTrue(!dli.hasPrevious());
         for (int index = 0; index < 10; index++) {
             Assert.assertTrue(dli.next().getId() == null);
         }
@@ -158,30 +158,22 @@ public class UtilsTests {
             }
         }
         final LongListIterator<Data<Long>> dl3 = new LongListIterator<>();
-        Parallel.For(dli.<List<Data<Long>>>allCollections(), new Parallel.Operation<List<Data<Long>>>() {
-            @Override
-            public void perform(List<Data<Long>> pParameter) {
-                Parallel.For(pParameter, new Parallel.Operation<Data<Long>>() {
-                    @Override
-                    public void perform(Data<Long> pParameter) {
-                        System.out.println(pParameter);
-                        synchronized (dl3) {
-                            dl3.addAtEnd(pParameter);
-                        }
+        for(List<Data<Long>> list  : dli.<List<Data<Long>>>allCollections()) {
+            Parallel.For((Iterable<? extends Data<Long>>) list, new Parallel.Operation<Data<Long>>() {
+                @Override
+                public void perform(Data<Long> pParameter) {
+                    System.out.println(pParameter);
+                    synchronized (dl3) {
+                        dl3.addAtEnd(pParameter);
                     }
+                }
 
-                    @Override
-                    public boolean follow() {
-                        return true;
-                    }
-                });
-            }
-
-            @Override
-            public boolean follow() {
-                return true;
-            }
-        });
+                @Override
+                public boolean follow() {
+                    return true;
+                }
+            });
+        }
         //Assert.assertTrue(dli.size().equals(dl3.size()));
         //Assert.assertTrue(dli.equals(dl3));
 
@@ -210,6 +202,7 @@ public class UtilsTests {
         Assert.assertTrue(collection.remove(data2));
         Assert.assertTrue(collection.size() == dli2.nextCollection().size());
         Assert.assertTrue(dli.equals(dli2));
+        System.out.println("dil equals dli2");
         Assert.assertTrue(collection.remove(new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
             Long Id = count-1;
 
@@ -224,7 +217,10 @@ public class UtilsTests {
 
             }
         }));
+        System.out.println("Remove last data");
         Assert.assertTrue(!dli.equals(dli2));
+        ListIterator<Data<Long>,Long> li =  dli2.<Data<Long>>listIterator(dli2.size()/2);
+        Assert.assertTrue(li.size().equals(dli2.size()/2));
     }
 
     @Test
@@ -257,11 +253,11 @@ public class UtilsTests {
         final Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                for (long index = 0; index < count; index++) {
+                for (long getIndex = 0; getIndex < count; getIndex++) {
                     synchronized (ksi) {
-                        ksi.add(index);
+                        ksi.add(getIndex);
                     }
-                    System.out.println("Index : " + String.valueOf(index));
+                    System.out.println("Index : " + String.valueOf(getIndex));
                 }
             }
         };
@@ -284,5 +280,49 @@ public class UtilsTests {
     @Test
     public void testDataLongMap() {
 
+    }
+
+    @Test
+    public void testParallelExecute() {
+        Parallel.Running running = new Parallel.Running() {
+
+            @Override
+            public boolean restartPrevious() {
+                return false;
+            }
+
+            @Nullable
+            @Override
+            public Parallel.Running<?> previousRun() {
+                return null;
+            }
+
+            @Override
+            public Object actualParam() {
+                return null;
+            }
+
+            @Override
+            public boolean startNext() {
+                return true;
+            }
+
+            @Nullable
+            @Override
+            public Parallel.Running<?> nextRun() {
+                return this;
+            }
+
+            @Override
+            public void perform(Object pParameter) {
+
+            }
+
+            @Override
+            public boolean follow() {
+                return true;
+            }
+        };
+        Parallel.Execute(running, null);
     }
 }

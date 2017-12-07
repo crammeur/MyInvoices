@@ -15,10 +15,10 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator;
 public final class DataLongListIterator<T extends Data<Long>> extends LongListIterator<T> implements DataListIterator<T,Long> {
 
     /**
-     * Returns the index of the first occurrence of the specified element in this list, or -1 if this list does not contain the element. More formally, returns the lowest index i such that (o==null ? get(i)==null : o.equals(get(i))), or -1 if there is no such index.
+     * Returns the getIndex of the first occurrence of the specified element in this list, or -1 if this list does not contain the element. More formally, returns the lowest getIndex i such that (o==null ? get(i)==null : o.equals(get(i))), or -1 if there is no such getIndex.
      *
      * @param pKey key
-     * @return the index of the first occurrence of the specified element in this list, or -1 if this list does not contain the element
+     * @return the getIndex of the first occurrence of the specified element in this list, or -1 if this list does not contain the element
      */
     @Override
     @NotNull
@@ -61,10 +61,10 @@ public final class DataLongListIterator<T extends Data<Long>> extends LongListIt
     }
 
     /**
-     * Returns the index of the last occurrence of the specified element in this list, or -1 if this list does not contain the element. More formally, returns the highest index i such that (o==null ? get(i)==null : o.equals(get(i))), or -1 if there is no such index.
+     * Returns the getIndex of the last occurrence of the specified element in this list, or -1 if this list does not contain the element. More formally, returns the highest getIndex i such that (o==null ? get(i)==null : o.equals(get(i))), or -1 if there is no such getIndex.
      *
      * @param pKey key
-     * @return the index of the last occurrence of the specified element in this list, or -1 if this list does not contain the element
+     * @return the getIndex of the last occurrence of the specified element in this list, or -1 if this list does not contain the element
      */
     @NotNull
     @Override

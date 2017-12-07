@@ -587,14 +587,14 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
 
     @NotNull
     @Override
-    public final java.util.ListIterator listIterator() {
-        return values.listIterator();
+    public final ListIterator listIterator() {
+        return null;
     }
 
     @NotNull
     @Override
-    public final java.util.ListIterator listIterator(@NotNull Integer pIndex) {
-        return values.listIterator(pIndex);
+    public final ListIterator listIterator(@NotNull Integer pIndex) {
+        return null;
     }
 
     @NotNull
@@ -628,6 +628,17 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
         };
         Parallel.For(this.nextCollection(), operation);
         return result;
+    }
+
+    @Override
+    public void setIndex(@NotNull Integer pIndex) {
+
+    }
+
+    @NotNull
+    @Override
+    public final Integer getIndex() {
+        return mIndex;
     }
 
     @NotNull

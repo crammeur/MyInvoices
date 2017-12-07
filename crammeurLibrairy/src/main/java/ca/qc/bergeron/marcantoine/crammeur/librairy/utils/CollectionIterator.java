@@ -5,19 +5,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.Iterator;
 
 /**
  * Created by Marc-Antoine on 2017-11-23.
  */
 
-public abstract class CollectionIterator<E, S extends Serializable> implements ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E,S>,Iterable<E> {
-
-    @NotNull
-    @Override
-    public final Iterator<E> iterator() {
-        return ca.qc.bergeron.marcantoine.crammeur.librairy.lang.Object.cloneObject(this);
-    }
+public abstract class CollectionIterator<E, S extends Serializable> implements ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E,S> {
 
     @Override
     public final int collectionSizeOf(@NotNull S pIndex) {

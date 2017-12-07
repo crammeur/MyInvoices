@@ -19,6 +19,10 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterator<
     int MAX_COLLECTION_SIZE = Integer.MAX_VALUE;
 
     @NotNull
+    S getIndex();
+
+    void setIndex(@NotNull S pIndex);
+
     S size();
 
     /**
@@ -29,10 +33,10 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterator<
     int collectionSize();
 
     /**
-     * Return size of the specific collection where mIndex is
+     * Return size of the specific collection where pIndex is
      *
      * @param pIndex Index
-     * @return Size of specific collection where mIndex is
+     * @return Size of specific collection where getIndex is
      */
     int collectionSizeOf(@NotNull S pIndex);
 
@@ -41,28 +45,29 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterator<
     int collectionIndex();
 
     /**
-     * Return mIndex of specific collection where mIndex is
+     * Return getIndex of specific collection where pIndex is
      *
      * @param pIndex Index
-     * @return Index of specific collection where mIndex is
+     * @return Index of specific collection where pIndex is
      */
     int collectionIndexOf(@NotNull S pIndex);
 
     boolean hasNextCollection();
 
     /**
-     * Increment index and return the next collection
+     * Increment getIndex and return the next collection
      *
-     * @return the next Collection
+     * @return The next Collection
      * @throws NoSuchElementException
      */
     @NotNull
     Collection<E> nextCollection() throws NoSuchElementException;
 
+
     /**
      * Return the actual collection
      *
-     * @return actual Collection where index is
+     * @return Actual Collection where getIndex is
      * @throws IndexOutOfBoundsException
      */
     Collection<E> actualCollection() throws IndexOutOfBoundsException;
@@ -70,9 +75,9 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterator<
     boolean hasPreviousCollection();
 
     /**
-     * Decrement index and return the previous collection
+     * Decrement getIndex and return the previous collection
      *
-     * @return the previous collection
+     * @return The previous collection
      * @throws NoSuchElementException
      */
     @NotNull
@@ -85,7 +90,7 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterator<
      * Return specific collection where pIndex is
      *
      * @param pIndex Index
-     * @return Specific collection where index is
+     * @return Specific collection where getIndex is
      */
     @NotNull
     Collection<E> collectionOf(@NotNull S pIndex);
@@ -98,9 +103,9 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterator<
     int nextIndex();
 
     /**
-     * Increment index and return the next element
+     * Increment getIndex and return the next element
      *
-     * @return the next elements
+     * @return The next elements
      * @throws NoSuchElementException
      */
     @Nullable
@@ -109,7 +114,7 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterator<
     /**
      * Return the actual element
      *
-     * @return the actual element
+     * @return The actual element
      * @throws IndexOutOfBoundsException
      */
     @Nullable
@@ -120,13 +125,13 @@ public interface CollectionIterator<E, S extends Serializable> extends Iterator<
     int previousIndex();
 
     /**
-     * Decrement index and return the previous element
+     * Decrement getIndex and return the previous element
      *
-     * @return the previous element
-     * @throws IndexOutOfBoundsException
+     * @return The previous element
+     * @throws NoSuchElementException
      */
     @Nullable
-    E previous() throws IndexOutOfBoundsException;
+    E previous() throws NoSuchElementException;
 
     void set(@Nullable E pEntity);
 

@@ -54,7 +54,7 @@ public abstract class Object implements Serializable {
         return fs;
     }
 
-    public static <T> T createObject(@NotNull final Class<T> pClazz, @Nullable final Map<Field, java.lang.Object> pMap) throws IllegalAccessException, InstantiationException, InvocationTargetException {
+    public static <T> T createObject(@NotNull final Class<T> pClazz, @Nullable final Map<Field, java.lang.Object> pMap) throws IllegalAccessException {
         T result = null;
         Constructor constructor = null;
         for (Constructor c : pClazz.getConstructors()) {
@@ -65,14 +65,36 @@ public abstract class Object implements Serializable {
         }
         if (constructor != null) {
             if (constructor.getParameterTypes().length == 0) {
-                result = (T) constructor.newInstance();
+                try {
+                    result = (T) constructor.newInstance();
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
             } else {
                 final Class<?>[] clazzs = constructor.getParameterTypes();
                 final java.lang.Object[] params = new java.lang.Object[clazzs.length];
                 for (int arrayIndex = 0; arrayIndex<clazzs.length; arrayIndex++) {
                     params[arrayIndex] = Values.defaultValueFor(clazzs[arrayIndex]);
                 }
-                result = (T) constructor.newInstance(params);
+                try {
+                    result = (T) constructor.newInstance(params);
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
             }
             if (pMap != null) {
                 Class<?> clazz = pClazz;
@@ -86,11 +108,14 @@ public abstract class Object implements Serializable {
                                 try {
                                     field.setAccessible(true);
                                     field.set(result,pMap.get(field));
+                                } catch (IllegalAccessException e) {
+                                    e.printStackTrace();
+                                    throw new RuntimeException(e);
                                 } finally {
                                     field.setAccessible(b);
                                 }
                             } else {
-                                throw new IllegalAccessException("Fields static and final can't be modified");
+                                throw new IllegalAccessException("Field static and final can't be modified");
                             }
                         }
                     }
@@ -174,7 +199,7 @@ public abstract class Object implements Serializable {
                     if (!Modifier.isFinal(field.getModifiers()) || !Modifier.isStatic(field.getModifiers()))
                         field.set(pObject, pMap.get(field));
                     else
-                        throw new RuntimeException("Fields static and final can't be modified");
+                        throw new IllegalAccessException("Field static and final can't be modified");
                 }
             } finally {
                 field.setAccessible(b);

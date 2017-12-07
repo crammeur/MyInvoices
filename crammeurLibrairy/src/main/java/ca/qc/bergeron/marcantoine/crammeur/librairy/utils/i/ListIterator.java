@@ -42,10 +42,10 @@ public interface ListIterator<E, S extends Serializable> extends CollectionItera
     List<E> collectionOf(@NotNull S pIndex);
 
     @NotNull
-    java.util.ListIterator<E> listIterator();
+    ListIterator<E, S> listIterator();
 
     @NotNull
-    java.util.ListIterator<E> listIterator(@NotNull S pIndex);
+    ListIterator<E, S> listIterator(@NotNull S pIndex);
 
     @NotNull
     ListIterator<E, S> subListIterator(@NotNull S pIndex1, @NotNull S pIndex2);

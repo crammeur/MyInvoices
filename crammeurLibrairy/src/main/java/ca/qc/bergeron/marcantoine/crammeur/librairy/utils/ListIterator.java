@@ -78,13 +78,13 @@ public abstract class ListIterator<E, S extends Serializable> extends ca.qc.berg
         final boolean[] result = new boolean[1];
         if ((result[0] = this.size().equals(pListIterator.size())) && !this.isEmpty()) {
             final Iterator<List<E>> collections = pListIterator.<List<E>>allCollections().iterator();
-            for (List<E> collection : this.<List<E>>allCollections()) {
+            for (List<E> list : this.<List<E>>allCollections()) {
                 final Iterator<E> iterator = collections.next().iterator();
-                Parallel.For(collection, new Parallel.Operation<E>() {
+                Parallel.For(list, new Parallel.Operation<E>() {
                     @Override
                     public void perform(E pParameter) {
                         synchronized (result) {
-                            result[0] = pParameter.equals(iterator.next());
+                                result[0] = pParameter.equals(iterator.next());
                         }
                     }
 
