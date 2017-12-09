@@ -675,7 +675,7 @@ public class FilesTemplate<T extends Data<K>, K extends Number> extends CRUD<T, 
             T data = this.getByKey(key);
             if (data != null) {
                 data.setId(null);
-                if (data.equals(pEntity))
+                if (data.equals((ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data) pEntity))
                     result = key;
                 data.setId(key);
                 if (result != null)

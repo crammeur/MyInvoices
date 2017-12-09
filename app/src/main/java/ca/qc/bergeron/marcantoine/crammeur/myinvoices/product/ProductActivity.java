@@ -19,6 +19,7 @@ import java.util.List;
 import ca.qc.bergeron.marcantoine.crammeur.android.models.Invoice;
 import ca.qc.bergeron.marcantoine.crammeur.android.models.Product;
 import ca.qc.bergeron.marcantoine.crammeur.android.models.data.ShopProduct;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
 import ca.qc.bergeron.marcantoine.crammeur.myinvoices.MainActivity;
 import ca.qc.bergeron.marcantoine.crammeur.myinvoices.R;
 import ca.qc.bergeron.marcantoine.crammeur.myinvoices.invoice.product.ProductContent;
@@ -310,7 +311,7 @@ public class ProductActivity extends AppCompatActivity {
                 for (ProductContent.ProductItem pi2 : ProductContent.ITEMS) {
                     Product p2 = ProductContent.ProductItem.convert(pi2);
                     p2.Id = null;
-                    if (product.equals(p2)) {
+                    if (product.equals((Data) p2)) {
                         quantity += pi2.Quantity;
                         delete.add(pi2);
                     }

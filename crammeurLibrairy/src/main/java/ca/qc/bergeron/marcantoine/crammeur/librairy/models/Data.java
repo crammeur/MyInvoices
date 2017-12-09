@@ -37,10 +37,20 @@ public abstract class Data<K extends Serializable> extends Object implements ca.
     }
 
     @Override
+    public final boolean equals(java.lang.Object obj) {
+        if (ca.qc.bergeron.marcantoine.crammeur.librairy.lang.Object.class.isAssignableFrom(obj.getClass())) {
+            return super.equals((ca.qc.bergeron.marcantoine.crammeur.librairy.lang.Object)obj);
+        } else {
+            return obj != null && this.toString().equals(obj.toString());
+        }
+    }
+
+    @Override
     public final boolean equals(ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data pData) {
         return super.equals(pData);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public final String toJSON() {
         GsonBuilder builder = new GsonBuilder<Data<K>, K>((Class<Data<K>>) this.getClass());

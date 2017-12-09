@@ -259,7 +259,7 @@ public final class JerseyTemplate<T extends Data<K>, K extends Number> extends R
         for (T data : this.getAll()) {
             K key = data.getId();
             data.setId(null);
-            if (data.equals(pEntity)) {
+            if (data.equals((ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data) pEntity)) {
                 result = key;
             }
             if (result != null)

@@ -6,11 +6,13 @@ import org.jetbrains.annotations.Nullable;
 import java.io.Serializable;
 import java.util.Set;
 
+import ca.qc.bergeron.marcantoine.crammeur.librairy.lang.Object;
+
 /**
  * Created by Marc-Antoine on 2017-11-23.
  */
 
-public abstract class Map<K extends Serializable,V> implements ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.Map<K,V> {
+public abstract class Map<K extends Serializable,V> extends Object implements ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.Map<K,V> {
 
     @Override
     public final <K2 extends K, V2 extends V> void putAll(@NotNull final ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.Map<K2, V2> pMap) {

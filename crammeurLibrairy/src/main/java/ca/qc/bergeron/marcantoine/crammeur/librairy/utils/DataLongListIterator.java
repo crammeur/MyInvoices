@@ -14,12 +14,6 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator;
 
 public final class DataLongListIterator<T extends Data<Long>> extends LongListIterator<T> implements DataListIterator<T,Long> {
 
-    /**
-     * Returns the getIndex of the first occurrence of the specified element in this list, or -1 if this list does not contain the element. More formally, returns the lowest getIndex i such that (o==null ? get(i)==null : o.equals(get(i))), or -1 if there is no such getIndex.
-     *
-     * @param pKey key
-     * @return the getIndex of the first occurrence of the specified element in this list, or -1 if this list does not contain the element
-     */
     @Override
     @NotNull
     public final Long indexOfKey(@Nullable final Long pKey) {
@@ -33,7 +27,10 @@ public final class DataLongListIterator<T extends Data<Long>> extends LongListIt
             public void perform(T pParameter) {
                 if (pParameter != null && ((pKey == null && pParameter.getId() == null) || (pKey != null && pKey.equals(pParameter.getId())))) {
                     synchronized (this) {
-                        index++;
+                        if (index == NULL_INDEX)
+                            index = MIN_INDEX;
+                        else
+                            index++;
                         follow = false;
                     }
                     synchronized (result) {
@@ -60,12 +57,6 @@ public final class DataLongListIterator<T extends Data<Long>> extends LongListIt
         return result[0];
     }
 
-    /**
-     * Returns the getIndex of the last occurrence of the specified element in this list, or -1 if this list does not contain the element. More formally, returns the highest getIndex i such that (o==null ? get(i)==null : o.equals(get(i))), or -1 if there is no such getIndex.
-     *
-     * @param pKey key
-     * @return the getIndex of the last occurrence of the specified element in this list, or -1 if this list does not contain the element
-     */
     @NotNull
     @Override
     public final Long lastIndexOfKey(@Nullable final Long pKey) {
@@ -77,7 +68,10 @@ public final class DataLongListIterator<T extends Data<Long>> extends LongListIt
             @Override
             public void perform(T pParameter) {
                 synchronized (this) {
-                    index++;
+                    if (index == NULL_INDEX)
+                        index = MIN_INDEX;
+                    else
+                        index++;
                 }
                 if (pParameter != null) {
                     boolean equals;

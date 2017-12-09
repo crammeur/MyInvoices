@@ -272,7 +272,7 @@ public final class Parallel {
                             Execute(pRunning.nextRun(),pRunning);
                         }
                         if (pRunning.restartPrevious()){
-                            Execute(pPreviousRunning,pPreviousRunning.previousRun());
+                            Execute(pPreviousRunning,pRunning);
                         }
                     } catch (Throwable t) {
                         t.printStackTrace();

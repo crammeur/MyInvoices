@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 /**
@@ -18,6 +19,13 @@ public interface SetIterator<E, S extends Serializable> extends CollectionIterat
     @NotNull
     @Override
     Set<E> collectionOf(@NotNull S pIndex);
+
+    @Override
+    Set<E> getCollection() throws IndexOutOfBoundsException;
+
+    @NotNull
+    @Override
+    Set<E> previousCollection() throws NoSuchElementException;
 
     boolean equals(@Nullable final SetIterator<E,S> pSetIterator);
 

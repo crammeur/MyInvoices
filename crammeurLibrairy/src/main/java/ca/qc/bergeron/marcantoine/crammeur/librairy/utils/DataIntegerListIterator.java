@@ -3,6 +3,7 @@ package ca.qc.bergeron.marcantoine.crammeur.librairy.utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -21,7 +22,7 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.ListIterator;
 
 public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.qc.bergeron.marcantoine.crammeur.librairy.utils.ListIterator<T, Integer> implements DataListIterator<T,Integer> {
     @Override
-    public Collection<T> actualCollection() {
+    public List<T> getCollection() {
         return null;
     }
 
@@ -377,7 +378,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
 
     @NotNull
     @Override
-    public Collection<T> previousCollection() {
+    public List<T> previousCollection() {
         return null;
     }
 
@@ -393,20 +394,173 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
         return new Iterable<List<T>>() {
             @NotNull
             @Override
-            public Iterator<List<T>> iterator() {
-                return new Iterator<List<T>>() {
-                    private final LinkedList<T> values = DataIntegerListIterator.this.values;
+            public ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.Iterator<List<T>> iterator() {
+                return new ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.Iterator<List<T>>() {
+                    @Nullable
+                    @Override
+                    public List<T> get() throws IndexOutOfBoundsException {
+                        return null;
+                    }
+
+                    @Override
+                    public boolean hasPrevious() {
+                        return false;
+                    }
+
+                    @Nullable
+                    @Override
+                    public List<T> previous() throws NoSuchElementException {
+                        return null;
+                    }
+
+                    @Override
+                    public void add(@Nullable List<T> pEntity) {
+
+                    }
+
+                    @Override
+                    public void set(@Nullable List<T> pEntity) {
+
+                    }
+
                     private transient volatile int mIndex = NULL_INDEX;
-                    private transient volatile int mSize = 1;
 
                     @Override
                     public boolean hasNext() {
-                        return mIndex + 1 < mSize;
+                        return mIndex==NULL_INDEX && MIN_INDEX < values.size();
                     }
 
                     @Override
                     public List<T> next() {
-                        return values;
+                        if (mIndex==NULL_INDEX)
+                            mIndex=MIN_INDEX;
+                        else
+                            throw new NoSuchElementException();
+                        return new List<T>() {
+
+                            private ArrayList<T> currentCollection = new ArrayList<>(values);
+
+                            @Override
+                            public final int size() {
+                                return currentCollection.size();
+                            }
+
+                            @Override
+                            public final boolean isEmpty() {
+                                return currentCollection.isEmpty();
+                            }
+
+                            @Override
+                            public boolean contains(Object o) {
+                                return false;
+                            }
+
+                            @NotNull
+                            @Override
+                            public Iterator<T> iterator() {
+                                return null;
+                            }
+
+                            @NotNull
+                            @Override
+                            public Object[] toArray() {
+                                return new Object[0];
+                            }
+
+                            @NotNull
+                            @Override
+                            public <T1> T1[] toArray(@NotNull T1[] a) {
+                                return null;
+                            }
+
+                            @Override
+                            public boolean add(T t) {
+                                return false;
+                            }
+
+                            @Override
+                            public boolean remove(Object o) {
+                                return false;
+                            }
+
+                            @Override
+                            public boolean containsAll(@NotNull Collection<?> c) {
+                                return false;
+                            }
+
+                            @Override
+                            public boolean addAll(@NotNull Collection<? extends T> c) {
+                                return false;
+                            }
+
+                            @Override
+                            public boolean addAll(int index, @NotNull Collection<? extends T> c) {
+                                return false;
+                            }
+
+                            @Override
+                            public boolean removeAll(@NotNull Collection<?> c) {
+                                return false;
+                            }
+
+                            @Override
+                            public boolean retainAll(@NotNull Collection<?> c) {
+                                return false;
+                            }
+
+                            @Override
+                            public void clear() {
+
+                            }
+
+                            @Override
+                            public T get(int index) {
+                                return null;
+                            }
+
+                            @Override
+                            public T set(int index, T element) {
+                                return null;
+                            }
+
+                            @Override
+                            public void add(int index, T element) {
+
+                            }
+
+                            @Override
+                            public T remove(int index) {
+                                return null;
+                            }
+
+                            @Override
+                            public int indexOf(Object o) {
+                                return 0;
+                            }
+
+                            @Override
+                            public int lastIndexOf(Object o) {
+                                return 0;
+                            }
+
+                            @NotNull
+                            @Override
+                            public java.util.ListIterator<T> listIterator() {
+                                return null;
+                            }
+
+                            @NotNull
+                            @Override
+                            public java.util.ListIterator<T> listIterator(int index) {
+                                return null;
+                            }
+
+                            @NotNull
+                            @Override
+                            public List<T> subList(int fromIndex, int toIndex) {
+                                return null;
+                            }
+                        };
                     }
                 };
             }
@@ -455,7 +609,7 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
 
     @Nullable
     @Override
-    public T actual() {
+    public T get() {
         return null;
     }
 
@@ -681,5 +835,15 @@ public final class DataIntegerListIterator<T extends Data<Integer>> extends ca.q
     @Override
     public boolean hasPreviousCollection() {
         return false;
+    }
+
+    @NotNull
+    @Override
+    public ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.Iterator<T> iterator() {
+        return null;
+    }
+
+    public ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.Iterator<T> collectionIterator() {
+        return null;
     }
 }

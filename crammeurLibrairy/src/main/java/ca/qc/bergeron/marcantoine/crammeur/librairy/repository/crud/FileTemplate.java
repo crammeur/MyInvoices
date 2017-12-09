@@ -466,7 +466,7 @@ public class FileTemplate<T extends Data<Integer>> extends CRUD<T, Integer> {
         for (T data : this.getAll()) {
             Integer key = data.getId();
             data.setId(null);
-            if (data.equals(pEntity))
+            if (data.equals((ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data) pEntity))
                 result = key;
             data.setId(key);
             if (result != null)

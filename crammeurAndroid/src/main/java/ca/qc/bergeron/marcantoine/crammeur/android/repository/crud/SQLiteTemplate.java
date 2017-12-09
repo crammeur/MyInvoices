@@ -203,7 +203,7 @@ public abstract class SQLiteTemplate<T extends Data<K>, K extends Serializable> 
             for (T data : this.getAll()) {
                 K key = data.getId();
                 data.setId(null);
-                if (data.equals(pEntity)) {
+                if (data.equals((ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data) pEntity)) {
                     data.setId(key);
                     return key;
                 }

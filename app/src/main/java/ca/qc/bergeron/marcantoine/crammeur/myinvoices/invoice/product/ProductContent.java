@@ -12,6 +12,7 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.lang.Object;
 import ca.qc.bergeron.marcantoine.crammeur.android.models.Product;
 import ca.qc.bergeron.marcantoine.crammeur.android.models.data.ShopProduct;
 import ca.qc.bergeron.marcantoine.crammeur.android.service.Service;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
 
 /**
  * Created by Marc-Antoine on 2017-03-28.
@@ -50,7 +51,7 @@ public class ProductContent {
             Product p1 = ProductContent.ProductItem.convert(pi);
             if (pProduct.Id == null) {
                 p1.Id = null;
-                if (p1.equals(pProduct)) return true;
+                if (p1.equals((Data) pProduct)) return true;
             } else if (pProduct.Id.equals(p1.Id)) {
                 return true;
             }

@@ -268,21 +268,13 @@ public abstract class Object implements Serializable {
         return result;
     }
 
-    /**
-     * @return java.lang.Object.class.toString() (Object Address)
-     */
-    public final String getAddress() {
-        return java.lang.Object.class.toString();
-    }
-
     @Override
     public String toString() {
         return toGenericString(this.getClass(), this);
     }
 
-    @Override
-    public boolean equals(final java.lang.Object pObject) {
-        return (pObject != null && (this.getAddress().equals(pObject.toString()) || this.toString().equals(pObject.toString())));
+    public final boolean equals(final Object pObject) {
+        return pObject != null && (this == pObject || this.toString().equals((pObject.toString())));
     }
 
     @Override

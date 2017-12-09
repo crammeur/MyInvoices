@@ -6,6 +6,7 @@ import org.junit.Test;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -111,7 +112,7 @@ public class UtilsTests {
                     this.Id = pId;
                 }
             };
-            dli.addAtEnd(data3);
+            Assert.assertTrue(dli.addAtEnd(data3));
         }
         Assert.assertTrue(!dli.hasPrevious());
         for (int index = 0; index < 10; index++) {
@@ -178,7 +179,7 @@ public class UtilsTests {
         //Assert.assertTrue(dli.equals(dl3));
 
         //Assert.assertTrue(!dli.equals(dli2));
-        Collection<Data<Long>> collection = dli.actualCollection();
+        Collection<Data<Long>> collection = dli.getCollection();
         Assert.assertTrue(collection.remove(data));
         for (int index = 0; index < 10; index++) {
             Data<Long> data3 = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
@@ -288,13 +289,18 @@ public class UtilsTests {
 
             @Override
             public boolean restartPrevious() {
-                return false;
+                int random;
+                do {
+                    random = new Random().nextInt(3);
+                    System.out.println(String.valueOf(random) + " Restart");
+                } while (random == 1);
+                return random == 0;
             }
 
             @Nullable
             @Override
             public Parallel.Running<?> previousRun() {
-                return null;
+                return this;
             }
 
             @Override
@@ -304,7 +310,12 @@ public class UtilsTests {
 
             @Override
             public boolean startNext() {
-                return true;
+                int random;
+                do {
+                    random = new Random().nextInt(3);
+                    System.out.println(String.valueOf(random) + " Start");
+                } while (random == 1);
+                return random == 0;
             }
 
             @Nullable

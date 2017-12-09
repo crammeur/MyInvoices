@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 /**
  * Created by Marc-Antoine on 2017-09-18.
@@ -37,9 +38,16 @@ public interface ListIterator<E, S extends Serializable> extends CollectionItera
     @Override
     List<E> nextCollection();
 
+    @Override
+    List<E> getCollection() throws IndexOutOfBoundsException;
+
     @NotNull
     @Override
-    List<E> collectionOf(@NotNull S pIndex);
+    List<E> previousCollection() throws NoSuchElementException;
+
+    @NotNull
+    @Override
+    List<E> collectionOf(@NotNull S pIndex) throws IndexOutOfBoundsException;
 
     @NotNull
     ListIterator<E, S> listIterator();
