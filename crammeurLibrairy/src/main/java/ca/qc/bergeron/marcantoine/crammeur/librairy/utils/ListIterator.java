@@ -18,23 +18,22 @@ public abstract class ListIterator<E, S extends Serializable> extends ca.qc.berg
 
     public final <E2 extends E> boolean addAllAtEnd(@NotNull @Flow(sourceIsContainer = true, targetIsContainer = true) ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator<E2, S> pCollectionIterator) {
         final boolean[] result = new boolean[1];
+        result[0] = !pCollectionIterator.isEmpty();
         Parallel.Operation<E> operation = new Parallel.Operation<E>() {
-            boolean follow = true;
             @Override
             public void perform(E pParameter) {
                 synchronized (ca.qc.bergeron.marcantoine.crammeur.librairy.utils.ListIterator.this) {
-                    synchronized (result) {
-                        result[0] = ca.qc.bergeron.marcantoine.crammeur.librairy.utils.ListIterator.this.addAtEnd(pParameter);
+                    if (!ca.qc.bergeron.marcantoine.crammeur.librairy.utils.ListIterator.this.addAtEnd(pParameter)) {
+                        synchronized (result) {
+                            result[0] = false;
+                        }
                     }
-                }
-                synchronized (this) {
-                    follow = result[0];
                 }
             }
 
             @Override
             public boolean follow() {
-                return follow;
+                return result[0];
             }
         };
         for (Collection<E2> collection : pCollectionIterator.allCollections()) {
@@ -73,7 +72,7 @@ public abstract class ListIterator<E, S extends Serializable> extends ca.qc.berg
     public final boolean equals(@Nullable ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.ListIterator<E, S> pListIterator) {
         if (pListIterator == null) return false;
         //Save time
-        if (this.equals((java.lang.Object) pListIterator)) return true;
+        if (this == pListIterator) return true;
         final boolean[] result = new boolean[1];
         if ((result[0] = this.size().equals(pListIterator.size())) && !this.isEmpty()) {
             final Iterator<Collection<E>> collections = pListIterator.allCollections().iterator();

@@ -34,7 +34,11 @@ public abstract class Object implements Serializable {
 
     public static LinkedList<Field> getAllFields(final Class<?> pType) {
         LinkedList<Field> fs = new LinkedList<Field>();
-        fs.addAll(Arrays.asList(pType.getDeclaredFields()));
+        for (Field f : Arrays.asList(pType.getDeclaredFields())) {
+            if (!f.getName().contains("$")) {
+                fs.add(f);
+            }
+        }
         if (pType.getSuperclass() != null) {
             fs.addAll(getAllFields(pType.getSuperclass()));
         }
@@ -44,7 +48,7 @@ public abstract class Object implements Serializable {
     public static LinkedList<Field> getAllSerializableFields(final Class<?> pType) {
         LinkedList<Field> fs = new LinkedList<Field>();
         for (Field f : Arrays.asList(pType.getDeclaredFields())) {
-            if (!Modifier.isTransient(f.getModifiers()) && (!Modifier.isStatic(f.getModifiers()) && !Modifier.isFinal(f.getModifiers()))) {
+            if (!Modifier.isTransient(f.getModifiers()) && (!Modifier.isStatic(f.getModifiers()) && !Modifier.isFinal(f.getModifiers())) && !f.getName().contains("$")) {
                 fs.add(f);
             }
         }
@@ -212,7 +216,7 @@ public abstract class Object implements Serializable {
         final StringBuffer sb = new StringBuffer(pClass.getSimpleName() + "{");
         final Field[] fields = pClass.getDeclaredFields();
         for (int index = 0; index < fields.length; index++) {
-            if (!Modifier.isTransient(fields[index].getModifiers()) && (!Modifier.isStatic(fields[index].getModifiers()) && !Modifier.isFinal(fields[index].getModifiers()))) {
+            if (!Modifier.isTransient(fields[index].getModifiers()) && (!Modifier.isStatic(fields[index].getModifiers()) || !Modifier.isFinal(fields[index].getModifiers())) && !fields[index].getName().contains("$")) {
                 final boolean b = fields[index].isAccessible();
                 try {
                     if (sb.toString().lastIndexOf("{") != sb.toString().length() - 1 && sb.toString().lastIndexOf(", ") != sb.toString().length() - 1) {
@@ -243,26 +247,30 @@ public abstract class Object implements Serializable {
         return sb.toString();
     }
 
-    public final LinkedList<Field> getAllFields() {
+    public LinkedList<Field> getAllFields() {
         if (resultGetAllFields == null) resultGetAllFields = getAllFields(this.getClass());
         return resultGetAllFields;
     }
 
-    public final LinkedList<Field> getAllSerializableFields() {
+    public LinkedList<Field> getAllSerializableFields() {
         if (resultGetAllSerializableFields == null)
             resultGetAllSerializableFields = getAllSerializableFields(this.getClass());
         return resultGetAllSerializableFields;
     }
 
     @NotNull
-    public Map<Field, java.lang.Object> toMap() {
+    public final Map<Field, java.lang.Object> toMap() {
         final Map<Field, java.lang.Object> result = new HashMap<Field, java.lang.Object>();
         for (final Field f : this.getAllFields()) {
+            boolean b = f.isAccessible();
             try {
+                f.setAccessible(true);
                 result.put(f, f.get(this));
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);
+            } finally {
+                f.setAccessible(b);
             }
         }
         return result;
@@ -271,10 +279,6 @@ public abstract class Object implements Serializable {
     @Override
     public String toString() {
         return toGenericString(this.getClass(), this);
-    }
-
-    public final boolean equals(final Object pObject) {
-        return pObject != null && (this == pObject || this.toString().equals((pObject.toString())));
     }
 
     @Override

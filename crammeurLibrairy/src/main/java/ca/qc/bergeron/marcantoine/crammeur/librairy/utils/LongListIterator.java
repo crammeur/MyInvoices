@@ -7,9 +7,7 @@ import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.TreeMap;
 
@@ -17,7 +15,6 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.events.SizeListener;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.CollectionIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.Iterator;
-import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.ListIterator;
 
 /**
  * Created by Marc-Antoine on 2017-09-19.
@@ -25,23 +22,441 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.ListIterator;
 
 public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.librairy.utils.ListIterator<E, Long> {
 
-    @SuppressWarnings("unchecked")
-    private final LinkedList<LinkedList<E>>[] values = new LinkedList[2];
-    private transient volatile long mIndex = NULL_INDEX;
-    private transient volatile long mSize = 0L;
 
-    //TODO Parallel methods
-    private transient final LinkedList<SizeListener> sizeListeners = new LinkedList<>();
+    //TODO
+    private final class ListIterator implements java.util.List<E> {
+
+        transient ParallelArrayList<E> currentCollection;
+        transient final long mCollectionIndex;
+
+        private ListIterator() {
+            currentCollection = (mIndex != NULL_INDEX)?new ParallelArrayList<>(collectionOf(mIndex)):null;
+            mCollectionIndex = (mIndex == NULL_INDEX)?NULL_INDEX:mIndex/MAX_COLLECTION_SIZE;
+        }
+
+
+        @Override
+        public final boolean addAll(final int pIndex, @NotNull final Collection<? extends E> c) {
+            if (pIndex < 0 || pIndex > this.size()) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
+            final boolean[] result = new boolean[1];
+            result[0] = !c.isEmpty();
+            final java.util.List<E> collection = this;
+            Parallel.For(c, new Parallel.Operation<E>() {
+                @Override
+                public void perform(E pParameter) {
+                    synchronized (collection) {
+                        collection.add(pIndex,pParameter);
+                    }
+                }
+
+                @Override
+                public boolean follow() {
+                    return result[0];
+                }
+            });
+            return result[0];
+        }
+
+        @Override
+        public final E get(final int index) {
+            return currentCollection.get(index);
+        }
+
+        @Override
+        public final E set(final int index, final E element) {
+            return LongListIterator.this.set(((mIndex/MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE) + index, element);
+
+        }
+
+        @Override
+        public final void add(final int index, final E element) {
+            if (index < 0 || index > this.size()) throw new IndexOutOfBoundsException(String.valueOf(index));
+            if (currentCollection.size() == Integer.MAX_VALUE) throw new IllegalStateException("The list is full");
+            LongListIterator.this.add((mIndex/MAX_COLLECTION_SIZE)*MAX_COLLECTION_SIZE+index,element);
+        }
+
+        @Override
+        public final E remove(final int index) {
+            if (index < 0 || index >= this.size()) throw new IndexOutOfBoundsException(String.valueOf(index));
+            final long index2 = ((mIndex / MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE) + index;
+            return LongListIterator.this.remove(index2);
+        }
+
+        @Override
+        public final int indexOf(final Object o) {
+            final int[] result = new int[1];
+            result[0] = -1;
+            Parallel.Operation<E> operation = new Parallel.Operation<E>() {
+                int index = 0;
+
+                @Override
+                public void perform(E pParameter) {
+                    if ((o == pParameter) || (pParameter != null && pParameter.equals(o))) {
+                        synchronized (result) {
+                            result[0] = index;
+                        }
+                    } else {
+                        synchronized (this) {
+                            index++;
+                        }
+                    }
+                }
+
+                @Override
+                public boolean follow() {
+                    return result[0] == -1;
+                }
+            };
+            Parallel.For(this, operation);
+            return result[0];
+        }
+
+        @Override
+        public final int lastIndexOf(final Object o) {
+            final int[] result = new int[1];
+            result[0] = -1;
+            Parallel.Operation<E> operation = new Parallel.Operation<E>() {
+                int index = 0;
+
+                @Override
+                public void perform(E pParameter) {
+                    if ((o == pParameter) || (pParameter != null && pParameter.equals(o))) {
+                        synchronized (result) {
+                            result[0] = index;
+                        }
+                    }
+                    synchronized (this) {
+                        index++;
+                    }
+                }
+
+                @Override
+                public boolean follow() {
+                    return true;
+                }
+            };
+            Parallel.For(this, operation);
+            return result[0];
+        }
+
+        @NotNull
+        @Override
+        public final java.util.ListIterator<E> listIterator() {
+            return this.listIterator(-1);
+        }
+
+        @NotNull
+        @Override
+        public final java.util.ListIterator<E> listIterator(final int index) {
+            return new java.util.ListIterator<E>() {
+
+                private transient int mIndex = index;
+
+                @Override
+                public boolean hasNext() {
+                    return mIndex + 1 < mSize - (mCollectionIndex * MAX_COLLECTION_SIZE) && mIndex + 1 != Integer.MAX_VALUE;
+                }
+
+                @Override
+                public E next() {
+                    return ListIterator.this.get(++mIndex);
+                }
+
+                @Override
+                public boolean hasPrevious() {
+                    return mIndex - 1 >= 0;
+                }
+
+                @Override
+                public E previous() {
+                    return ListIterator.this.get(--mIndex);
+                }
+
+                @Override
+                public int nextIndex() {
+                    return mIndex + 1;
+                }
+
+                @Override
+                public int previousIndex() {
+                    return mIndex - 1;
+                }
+
+                @Override
+                public void remove() {
+                    ListIterator.this.remove(mIndex--);
+                }
+
+                @Override
+                public void set(E e) {
+                    ListIterator.this.set(mIndex,e);
+                }
+
+                @Override
+                public void add(E e) {
+                    ListIterator.this.add(mIndex,e);
+                }
+            };
+        }
+
+        @NotNull
+        @Override
+        public final java.util.List<E> subList(final int fromIndex, final int toIndex) {
+            return currentCollection.subList(fromIndex, toIndex);
+        }
+
+        @Override
+        public final int size() {
+            return currentCollection.size();
+        }
+
+        @Override
+        public final boolean isEmpty() {
+            return currentCollection.isEmpty();
+        }
+
+        @Override
+        public final boolean contains(final Object o) {
+            final boolean[] result = new boolean[1];
+            Parallel.For(this, new Parallel.Operation<E>() {
+                @Override
+                public void perform(E pParameter) {
+                    if ((o == pParameter) || (pParameter != null && pParameter.equals(o)))
+                        synchronized (result) {
+                        }
+                }
+
+                @Override
+                public boolean follow() {
+                    return !result[0];
+                }
+            });
+            return result[0];
+        }
+
+        @NotNull
+        @Override
+        public final java.util.Iterator<E> iterator() {
+            return new java.util.Iterator<E>() {
+
+                private transient int index = -1;
+
+                @Override
+                public boolean hasNext() {
+                    return index + 1 < mSize - (mCollectionIndex * MAX_COLLECTION_SIZE);
+                }
+
+                @Override
+                public E next() {
+                    return ListIterator.this.get(++index);
+                }
+
+                @Override
+                public void remove() {
+                    ListIterator.this.remove(index);
+                }
+            };
+        }
+
+        @NotNull
+        @Override
+        public final Object[] toArray() {
+            return currentCollection.toArray();
+        }
+
+        @NotNull
+        @Override
+        public final <T1> T1[] toArray(@NotNull final T1[] a) {
+            return currentCollection.toArray(a);
+        }
+
+        @Override
+        public final boolean add(final E e) {
+            if (this.size() == Integer.MAX_VALUE) throw new IllegalStateException("The list is full");
+            return LongListIterator.this.addAtEnd(e);
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public final boolean remove(final Object o) {
+            int index = indexOf(o);
+            return index != -1 && o.equals(LongListIterator.this.remove((mCollectionIndex * MAX_COLLECTION_SIZE) + index));
+        }
+
+        @SuppressWarnings("SuspiciousMethodCalls")
+        @Override
+        public final boolean containsAll(@NotNull final Collection<?> c) {
+            final boolean[] result = new boolean[1];
+            result[0] = !c.isEmpty();
+            final Collection<E> collection = this;
+            Parallel.For(c, new Parallel.Operation<Object>() {
+                @Override
+                public void perform(Object pParameter) {
+                    synchronized (result) {
+                        result[0] = collection.contains(pParameter);
+                    }
+                }
+
+                @Override
+                public boolean follow() {
+                    return result[0];
+                }
+            });
+            return result[0];
+        }
+
+        @Override
+        public final boolean addAll(@NotNull final Collection<? extends E> c) {
+            final boolean[] result = new boolean[1];
+            result[0] = !c.isEmpty();
+            final Collection<E> collection = this;
+            Parallel.For(c, new Parallel.Operation<E>() {
+                @Override
+                public void perform(E pParameter) {
+                    synchronized (result) {
+                        synchronized (collection) {
+                            result[0] = collection.add(pParameter);
+                        }
+                    }
+
+                }
+
+                @Override
+                public boolean follow() {
+                    return result[0];
+                }
+            });
+            return result[0];
+        }
+
+        @SuppressWarnings("SuspiciousMethodCalls")
+        @Override
+        public final boolean removeAll(@NotNull final Collection<?> c) {
+            final boolean[] result = new boolean[1];
+            result[0] = !c.isEmpty();
+            final Collection<E> collection = this;
+            Parallel.For(c, new Parallel.Operation<Object>() {
+                @Override
+                public void perform(Object pParameter) {
+                    synchronized (result) {
+                        result[0] = collection.remove(pParameter);
+                    }
+                }
+
+                @Override
+                public boolean follow() {
+                    return result[0];
+                }
+            });
+            return result[0];
+        }
+
+        @Override
+        public final boolean retainAll(@NotNull final Collection<?> c) {
+            final boolean[] result = new boolean[1];
+            result[0] = !c.isEmpty();
+            final Collection<E> removes = new ArrayList<>(c.size());
+            Parallel.For(this, new Parallel.Operation<E>() {
+                @Override
+                public void perform(E pParameter) {
+                    if (!c.contains(pParameter)) {
+                        synchronized (result) {
+                            result[0] = removes.add(pParameter);
+                        }
+                    }
+                }
+
+                @Override
+                public boolean follow() {
+                    return result[0];
+                }
+            });
+            return result[0] && this.removeAll(removes);
+        }
+
+        @Override
+        public final void clear() {
+            if (!this.isEmpty()) {
+                if (!LongListIterator.this.isEmpty()) {
+                    {
+                        final ArrayList<E> arrayList = new ArrayList<>(currentCollection);
+                        currentCollection.clear();
+                        final java.util.Map<Long, E> rollback = new TreeMap<>();
+                        try {
+                            Parallel.For(arrayList, new Parallel.Operation<E>() {
+                                final long startIndex = mIndex;
+                                long index = 0;
+                                @Override
+                                public void perform(E pParameter) {
+                                    final E delete;
+                                    synchronized (values) {
+                                        delete = LongListIterator.this.remove((startIndex/MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE);
+                                    }
+                                    synchronized (rollback) {
+                                        rollback.put(((startIndex / MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE) + index, delete);
+                                    }
+                                    if ((delete == null && pParameter != null) || (pParameter != null && !pParameter.equals(delete))) {
+                                        throw new RuntimeException("The values are not the same");
+                                    }
+                                    synchronized (this) {
+                                        index++;
+                                    }
+                                }
+
+                                @Override
+                                public boolean follow() {
+                                    return true;
+                                }
+                            });
+                        } catch (Throwable t) {
+                            Parallel.For(rollback.keySet(), new Parallel.Operation<Long>() {
+                                @Override
+                                public void perform(Long pParameter) {
+                                    synchronized (values) {
+                                        LongListIterator.this.add(pParameter, rollback.get(pParameter));
+                                    }
+                                }
+
+                                @Override
+                                public boolean follow() {
+                                    return true;
+                                }
+                            });
+                            t.printStackTrace();
+                            throw t;
+                        }
+                    }
+                    if (((mIndex / MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE) < (((mSize-1) / MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE)) {
+                        currentCollection = new ParallelArrayList<>(LongListIterator.this.collectionOf(mIndex));
+                        final Runtime runtime = Runtime.getRuntime();
+                        if (runtime.maxMemory() - runtime.freeMemory() > runtime.maxMemory() * 0.7f)
+                            System.gc();
+                    }
+                } else {
+                    currentCollection.clear();
+                }
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private final ParallelArrayList<ParallelLinkedList<E>>[] values = new ParallelArrayList[2];
+    private transient long mIndex = NULL_INDEX;
+    private transient long mSize = 0L;
+    private transient ListIterator mCurrentCollection = new ListIterator();
+
+    private transient final ParallelArrayList<SizeListener> sizeListeners = new ParallelArrayList<>();
 
     public LongListIterator(final CollectionIterator<E,? extends Serializable> pCollectionIterator) {
-        values[0] = new LinkedList<>();
-        values[1] = new LinkedList<>();
+        values[0] = new ParallelArrayList<>();
+        values[1] = new ParallelArrayList<>();
         final Parallel.Operation<Collection<E>> operation = new Parallel.Operation<Collection<E>>() {
-            long index = 0;
             @Override
             public void perform(Collection<E> pParameter) {
-                values[(int) (index++ / ((long) MAX_COLLECTION_SIZE * MAX_COLLECTION_SIZE))].add(new LinkedList<>(pParameter));
-                synchronized (this) {
+                final int arrayIndex = (int) (mSize / (((long) MAX_COLLECTION_SIZE + 1) * ((long)MAX_COLLECTION_SIZE + 1)));
+                final ParallelLinkedList<E> parallelLinkedList = new ParallelLinkedList<>(pParameter);
+                synchronized (LongListIterator.this) {
+                    values[arrayIndex].add(parallelLinkedList);
                     mSize+=pParameter.size();
                 }
             }
@@ -55,8 +470,8 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
     }
 
     public LongListIterator() {
-        values[0] = new LinkedList<LinkedList<E>>();
-        values[1] = new LinkedList<LinkedList<E>>();
+        values[0] = new ParallelArrayList<>();
+        values[1] = new ParallelArrayList<>();
     }
 
     @Override
@@ -66,102 +481,104 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
         values[1] = null;
         mIndex = NULL_INDEX;
         mSize = 0L;
-        sizeListeners.clear();
+        mCurrentCollection = null;
     }
 
     @NotNull
     @Override
-    public final Long getIndex() {
+    public Long getIndex() {
         return mIndex;
     }
 
     @Override
-    public final void setIndex(@NotNull Long pIndex) {
-        if (pIndex < MIN_INDEX || pIndex >= mSize) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
+    public void setIndex(@NotNull Long pIndex) {
+        if ((pIndex != NULL_INDEX && pIndex < MIN_INDEX) || pIndex >= mSize) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
         mIndex = pIndex;
+        if (mIndex / MAX_COLLECTION_SIZE != getCollectionIndex()) {
+            mCurrentCollection = new ListIterator();
+        }
+    }
+
+    protected Long getCollectionIndex() {
+        return mCurrentCollection.mCollectionIndex;
     }
 
     @Override
     @NotNull
-    public final Long size() {
+    public Long size() {
         return mSize;
     }
 
     @Override
     public final int collectionSize() {
-        return this.collectionSizeOf(mIndex);
+        return this.collectionSizeOf(getIndex());
     }
 
     @Override
-    public final boolean isEmpty() {
+    public boolean isEmpty() {
         return mSize == 0;
     }
 
     @Override
-    public final int collectionIndex() {
-        return this.collectionIndexOf(mIndex);
+    public final int indexInCollection() {
+        return this.indexInCollectionOf(getIndex());
     }
 
     @Override
-    public final int collectionIndexOf(@NotNull Long pIndex) {
-        return (int) (pIndex % ((long)MAX_COLLECTION_SIZE + 1));
+    public final int indexInCollectionOf(@NotNull Long pIndex) {
+        return (int) (pIndex % MAX_COLLECTION_SIZE);
     }
 
     @Override
-    public final boolean hasNext() {
-        return mIndex + 1 < mSize && mIndex + 1 >= MIN_INDEX;
+    public boolean hasNext() {
+        return getIndex() + 1 < mSize && getIndex() + 1 >= MIN_INDEX;
     }
+
     @Nullable
     @Override
-    public final E next() throws NoSuchElementException {
-        if (mIndex == NULL_INDEX)
-            mIndex = MIN_INDEX;
-        else if (mIndex + 1 <= mSize && mIndex + 1 >= MIN_INDEX)
-            mIndex++;
+    public E next() throws NoSuchElementException {
+        if (getIndex() == NULL_INDEX)
+            this.setIndex((long)MIN_INDEX);
+        else if (getIndex() + 1 < mSize && getIndex() + 1 >= MIN_INDEX)
+            this.setIndex(this.getIndex()+1);
+        else
+            throw new NoSuchElementException();
+        return get();
+    }
+
+    @Nullable
+    public E get() throws IndexOutOfBoundsException {
+        return getCollection().get(indexInCollection());
+    }
+
+    @Override
+    public boolean hasPrevious() {
+        return (getIndex() != NULL_INDEX) && getIndex() - 1 >= MIN_INDEX;
+    }
+
+    @Nullable
+    @Override
+    public E previous() throws NoSuchElementException {
+        if (getIndex() - 1 >= MIN_INDEX)
+            this.setIndex(this.getIndex()-1);
         else
             throw new NoSuchElementException();
 
         return get();
     }
 
-    @Nullable
-    public final E get() throws IndexOutOfBoundsException {
-        final int arrayIndex = (int) (mIndex / ((long) MAX_COLLECTION_SIZE * MAX_COLLECTION_SIZE));
-        final int listIndex = (arrayIndex == 1)
-                ? (int) ((mIndex % (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1))) / ((long) MAX_COLLECTION_SIZE + 1))
-                : (int) (mIndex / ((long) MAX_COLLECTION_SIZE + 1));
-        return values[arrayIndex].get(listIndex).get(collectionIndexOf(mIndex));
-
-    }
-
     @Override
-    public final boolean hasPrevious() {
-        return (mIndex != NULL_INDEX) && mIndex - 1 >= MIN_INDEX;
-    }
-
-    @Nullable
-    @Override
-    public final E previous() throws NoSuchElementException {
-        if (mIndex - 1 >= MIN_INDEX)
-            mIndex--;
-        else
-            throw new NoSuchElementException();
-
-        return get();
-    }
-
-    @Override
-    public final boolean hasNextCollection() {
-        return (mIndex + MAX_COLLECTION_SIZE < mSize && mIndex + MAX_COLLECTION_SIZE >= MIN_INDEX) || (mIndex == NULL_INDEX && mSize != 0);
+    public boolean hasNextCollection() {
+        return (getIndex() + (MAX_COLLECTION_SIZE - indexInCollection()) < mSize && getIndex() + (MAX_COLLECTION_SIZE - indexInCollection()) >= MIN_INDEX) || (getIndex() == NULL_INDEX && mSize != 0);
     }
 
     @Override
     @NotNull
-    public final List<E> nextCollection() throws NoSuchElementException {
-        if (mIndex == NULL_INDEX)
-            mIndex = MIN_INDEX;
-        else if (mIndex + MAX_COLLECTION_SIZE < mSize && mIndex + MAX_COLLECTION_SIZE >= MIN_INDEX)
-            mIndex += MAX_COLLECTION_SIZE;
+    public java.util.List<E> nextCollection() throws NoSuchElementException {
+        if (getIndex() == NULL_INDEX)
+            this.setIndex((long)MIN_INDEX);
+        else if (getIndex() + (MAX_COLLECTION_SIZE - indexInCollection()) < mSize && getIndex() + (MAX_COLLECTION_SIZE - indexInCollection()) >= MIN_INDEX)
+            this.setIndex(this.getIndex()+(MAX_COLLECTION_SIZE - indexInCollection()));
         else
             throw new NoSuchElementException();
 
@@ -169,20 +586,23 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
     }
 
     @Override
-    public final List<E> getCollection() throws IndexOutOfBoundsException {
-        return collectionOf(mIndex);
+    public java.util.List<E> getCollection() throws IndexOutOfBoundsException {
+        if (getIndex() / MAX_COLLECTION_SIZE != getCollectionIndex()) {
+            mCurrentCollection = new ListIterator();
+        }
+        return mCurrentCollection;
     }
 
     @Override
     public boolean hasPreviousCollection() {
-        return mIndex - MAX_COLLECTION_SIZE >= MIN_INDEX;
+        return getIndex() - (MAX_COLLECTION_SIZE - (MAX_COLLECTION_SIZE - indexInCollection())) >= MIN_INDEX;
     }
 
     @NotNull
     @Override
-    public final List<E> previousCollection() throws NoSuchElementException {
-        if (mIndex - MAX_COLLECTION_SIZE >= MIN_INDEX)
-            mIndex -= MAX_COLLECTION_SIZE;
+    public java.util.List<E> previousCollection() throws NoSuchElementException {
+        if (getIndex() - (MAX_COLLECTION_SIZE - (MAX_COLLECTION_SIZE - indexInCollection())) >= MIN_INDEX)
+            this.setIndex(getIndex() - (MAX_COLLECTION_SIZE - (MAX_COLLECTION_SIZE - indexInCollection())));
         else
             throw new NoSuchElementException();
 
@@ -192,28 +612,29 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
     @SuppressWarnings("unchecked")
     @Override
     @NotNull
-    public final Iterable<List<E>> allCollections() {
-        return new Iterable<List<E>>() {
+    public final Iterable<java.util.List<E>> allCollections() {
+        return new Iterable<java.util.List<E>>() {
             @NotNull
             @Override
-            public final Iterator<List<E>> iterator() {
-                return LongListIterator.this.<List<E>>collectionIterator();
+            public final Iterator<java.util.List<E>> iterator() {
+                return LongListIterator.this.<java.util.List<E>>collectionsIterator();
             }
         };
     }
 
+    //TODO
     @Override
     @NotNull
-    public final List<E> collectionOf(@NotNull final Long pIndex) {
+    public java.util.List<E> collectionOf(@NotNull final Long pIndex) {
         if (pIndex < MIN_INDEX || pIndex >= mSize) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
         final int arrayIndex = (int) (pIndex / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
         final int listIndex = (arrayIndex == 1)
                 ? (int) ((pIndex % (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1))) / ((long) MAX_COLLECTION_SIZE + 1))
                 : (int) (pIndex / ((long) MAX_COLLECTION_SIZE + 1));
-        return new List<E>() {
+        return new java.util.List<E>() {
 
             //Performance array list
-            private ArrayList<E> currentCollection = new ArrayList<>(values[arrayIndex].get(listIndex));
+            private ParallelArrayList<E> currentCollection = new ParallelArrayList<>(values[arrayIndex].get(listIndex));
 
             @Override
             public final int size() {
@@ -231,7 +652,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                 Parallel.For(this, new Parallel.Operation<E>() {
                     @Override
                     public void perform(E pParameter) {
-                        if ((o == null && pParameter == null) || (pParameter != null && pParameter.equals(o))) {
+                        if ((o == pParameter) || (pParameter != null && pParameter.equals(o))) {
                             synchronized (result) {
                                 result[0] = true;
                             }
@@ -250,7 +671,26 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
             @NotNull
             @Override
             public final java.util.Iterator<E> iterator() {
-                return currentCollection.iterator();
+                final java.util.List<E> list = this;
+                return new java.util.Iterator<E>() {
+
+                    private transient int mIndex = -1;
+
+                    @Override
+                    public boolean hasNext() {
+                        return mIndex + 1 < list.size();
+                    }
+
+                    @Override
+                    public E next() {
+                        return list.get(++mIndex);
+                    }
+
+                    @Override
+                    public void remove() {
+                        list.remove(mIndex);
+                    }
+                };
             }
 
             @NotNull
@@ -268,11 +708,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
             @Override
             public final boolean add(E e) {
                 if (this.size() == Integer.MAX_VALUE) throw new IllegalStateException("The list is full");
-                boolean result = currentCollection.add(e);
-                if (result) {
-                    result = LongListIterator.this.addAtEnd(e);
-                }
-                return result;
+                return currentCollection.add(e) && LongListIterator.this.addAtEnd(e);
             }
 
             @SuppressWarnings("unchecked")
@@ -282,17 +718,17 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                 boolean result = index != -1;
                 if (result) {
                     final E data = LongListIterator.this.get(((pIndex/MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE) + index);
-                    if (result = ((o == null && data == null) || (data != null && data.equals(o)))) {
+                    if (result = ((o == data) || (data != null && data.equals(o)))) {
                         result = currentCollection.remove(data);
                         if (result) {
                             final E data2 = LongListIterator.this.remove(((pIndex/MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE) + index);
-                            if ((result = ((o == null && data2 == null) || (data2 != null && data2.equals(o)))) &&
+                            if ((result = ((o == data2) || (data2 != null && data2.equals(o)))) &&
                                     ((pIndex/MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE) + index != (((mSize-1)/MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE) + index) {
                                 final int arrayIndex2 = (int) (pIndex / ((long) MAX_COLLECTION_SIZE * MAX_COLLECTION_SIZE));
                                 final int listIndex2 = (arrayIndex2 == 1)
                                         ? (int) ((pIndex % (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1))) / ((long) MAX_COLLECTION_SIZE + 1))
                                         : (int) (pIndex / ((long) MAX_COLLECTION_SIZE + 1));
-                                currentCollection = new ArrayList<>(values[arrayIndex2].get(listIndex2));
+                                currentCollection = new ParallelArrayList<>(values[arrayIndex2].get(listIndex2));
                                 final Runtime runtime = Runtime.getRuntime();
                                 if (runtime.maxMemory() - runtime.freeMemory() > runtime.maxMemory() * 0.7f) System.gc();
                             } else if (!result) {
@@ -316,9 +752,10 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                 Parallel.For(c, new Parallel.Operation<Object>() {
                     @Override
                     public void perform(Object pParameter) {
-                        synchronized (result) {
-                            result[0] = collection.contains(pParameter);
-                        }
+                        if (!collection.contains(pParameter))
+                            synchronized (result) {
+                                result[0] = false;
+                            }
                     }
 
                     @Override
@@ -354,29 +791,24 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
 
             @Override
             public final boolean addAll(final int index, @NotNull Collection<? extends E> c) {
-                if (index < 0 || index >= this.size()) throw new IndexOutOfBoundsException(String.valueOf(index));
-                final boolean[] result = new boolean[1];
-                final int[] index2 = new int[1];
-                index2[0] = index;
-                result[0] = !c.isEmpty();
-                final List<E> list = this;
+                if (this.size() + c.size() < 0) throw new IllegalStateException("The list has too much elements");
+                if (index < 0 || index > this.size()) throw new IndexOutOfBoundsException(String.valueOf(index));
+                final java.util.ListIterator<E> list = this.listIterator(index);
                 Parallel.For(c, new Parallel.Operation<E>() {
                     @Override
                     public void perform(E pParameter) {
                         synchronized (list) {
-                            list.add(index2[0],pParameter);
-                        }
-                        synchronized (index2) {
-                            index2[0]++;
+                            list.add(pParameter);
                         }
                     }
 
                     @Override
                     public boolean follow() {
-                        return result[0];
+                        return true;
                     }
                 });
-                return result[0];
+                mSize += c.size();
+                return !c.isEmpty();
             }
 
             @SuppressWarnings("SuspiciousMethodCalls")
@@ -478,7 +910,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                             }
                         }
                         if (((pIndex / MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE) < (((LongListIterator.this.mSize-1) / MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE)) {
-                            currentCollection = new ArrayList<>(LongListIterator.this.collectionOf(pIndex));
+                            currentCollection = new ParallelArrayList<>(LongListIterator.this.collectionOf(pIndex));
                             final Runtime runtime = Runtime.getRuntime();
                             if (runtime.maxMemory() - runtime.freeMemory() > runtime.maxMemory() * 0.7f) System.gc();
                         }
@@ -537,7 +969,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                     final int listIndex2 = (arrayIndex2 == 1)
                             ? (int) ((pIndex % (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1))) / ((long) MAX_COLLECTION_SIZE + 1))
                             : (int) (pIndex / ((long) MAX_COLLECTION_SIZE + 1));
-                    currentCollection = new ArrayList<>(values[arrayIndex2].get(listIndex2));
+                    currentCollection = new ParallelArrayList<>(values[arrayIndex2].get(listIndex2));
                     final Runtime runtime = Runtime.getRuntime();
                     if (runtime.maxMemory() - runtime.freeMemory() > runtime.maxMemory() * 0.7) System.gc();
                 }
@@ -549,16 +981,17 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                 final int[] result = new int[1];
                 result[0] = -1;
                 Parallel.Operation<E> operation = new Parallel.Operation<E>() {
-                    int index = -1;
+                    int index = 0;
 
                     @Override
                     public void perform(E pParameter) {
-                        synchronized (this) {
-                            index++;
-                        }
                         if ((o == pParameter) || (pParameter != null && pParameter.equals(o))) {
                             synchronized (result) {
                                 result[0] = index;
+                            }
+                        } else {
+                            synchronized (this) {
+                                index++;
                             }
                         }
                     }
@@ -577,17 +1010,17 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                 final int[] result = new int[1];
                 result[0] = -1;
                 Parallel.Operation<E> operation = new Parallel.Operation<E>() {
-                    int index = -1;
+                    int index = 0;
 
                     @Override
                     public void perform(E pParameter) {
-                        synchronized (this) {
-                            index++;
-                        }
-                        if ((o == pParameter) || (pParameter != null && o.equals(pParameter))) {
+                        if ((o == pParameter) || (pParameter != null && pParameter.equals(o))) {
                             synchronized (result) {
                                 result[0] = index;
                             }
+                        }
+                        synchronized (this) {
+                            index++;
                         }
                     }
 
@@ -603,18 +1036,68 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
             @NotNull
             @Override
             public final java.util.ListIterator<E> listIterator() {
-                return currentCollection.listIterator();
+                return this.listIterator(-1);
             }
 
             @NotNull
             @Override
-            public final java.util.ListIterator<E> listIterator(int index) {
-                return currentCollection.listIterator(index);
+            public final java.util.ListIterator<E> listIterator(final int index) {
+                if ((index != -1 && index < 0) || index >= this.size()) throw new IndexOutOfBoundsException(String.valueOf(index));
+                final java.util.List<E> list = this;
+                return new java.util.ListIterator<E>() {
+
+                    private transient int mIndex = index;
+
+                    @Override
+                    public boolean hasNext() {
+                        return mIndex + 1 < list.size();
+                    }
+
+                    @Override
+                    public E next() {
+                        return list.get(++mIndex);
+                    }
+
+                    @Override
+                    public boolean hasPrevious() {
+                        return mIndex - 1 >= 0;
+                    }
+
+                    @Override
+                    public E previous() {
+                        return list.get(--mIndex);
+                    }
+
+                    @Override
+                    public int nextIndex() {
+                        return mIndex + 1;
+                    }
+
+                    @Override
+                    public int previousIndex() {
+                        return mIndex - 1;
+                    }
+
+                    @Override
+                    public void remove() {
+                        list.remove(mIndex);
+                    }
+
+                    @Override
+                    public void set(E e) {
+                        list.set(mIndex,e);
+                    }
+
+                    @Override
+                    public void add(E e) {
+                        list.add(mIndex+1,e);
+                    }
+                };
             }
 
             @NotNull
             @Override
-            public final List<E> subList(int fromIndex, int toIndex) {
+            public final java.util.List<E> subList(int fromIndex, int toIndex) {
                 return currentCollection.subList(fromIndex, toIndex);
             }
         };
@@ -622,24 +1105,16 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
 
     @NotNull
     @Override
-    public final Long count(@Nullable final E pEntity) {
+    public Long count(@Nullable final E pEntity) {
         final long[] result = new long[1];
-        final Throwable[] throwable = new Throwable[1];
-        for (List<E> collection : this.allCollections()) {
+        for (java.util.List<E> collection : this.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
                 @Override
                 public void perform(E pParameter) {
-                    try{
-                        if ((pEntity == null && pParameter == null) || (pEntity != null && pEntity.equals(pParameter))) {
-                            synchronized (result) {
-                                result[0]++;
-                            }
+                    if ((pEntity == pParameter) || (pParameter != null && pParameter.equals(pEntity))) {
+                        synchronized (result) {
+                            result[0]++;
                         }
-                    } catch (Throwable t) {
-                        synchronized (throwable) {
-                            throwable[0] = t;
-                        }
-                        throw t;
                     }
                 }
 
@@ -649,185 +1124,114 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                 }
             });
         }
-        if (throwable[0] != null) throw new RuntimeException(throwable[0]);
         return result[0];
     }
 
     @Override
-    public final int nextIndex() {
-        if (mIndex + 1 != Long.MAX_VALUE && mIndex + 1 < mSize) {
-            return collectionIndexOf(mIndex + 1);
+    public int nextIndex() {
+        if (getIndex() + 1 != Long.MAX_VALUE && getIndex() + 1 < mSize) {
+            return indexInCollectionOf(getIndex() + 1);
         } else {
-            if (collectionIndexOf(mSize) == 0)
+            if (mSize % ((long)MAX_COLLECTION_SIZE + 1) == 0)
                 return Integer.MAX_VALUE;
             else
-                return collectionIndexOf(mSize);
+                return (int) (mSize % ((long)MAX_COLLECTION_SIZE + 1));
         }
     }
 
     @Override
     public final int previousIndex() {
-        if (mIndex != NULL_INDEX && mIndex - 1 >= MIN_INDEX) {
-            return collectionIndexOf(mIndex - 1);
+        if (getIndex() != NULL_INDEX && getIndex() - 1 >= MIN_INDEX) {
+            return indexInCollectionOf(getIndex() - 1);
         } else {
             return NULL_INDEX;
         }
     }
 
     @Override
-    public final void remove() {
-        if (mIndex == NULL_INDEX) throw new IllegalStateException(String.valueOf(NULL_INDEX));
-        this.remove(mIndex);
+    public void remove() {
+        if (getIndex() == NULL_INDEX) throw new IllegalStateException(String.valueOf(NULL_INDEX));
+        this.remove(getIndex());
     }
 
     @Override
-    public final void set(@Nullable E e) {
-        if (mIndex == NULL_INDEX) throw new IllegalStateException(String.valueOf(NULL_INDEX));
-        final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
+    public void set(@Nullable E e) {
+        if (getIndex() == NULL_INDEX) throw new IllegalStateException(String.valueOf(NULL_INDEX));
+        final int arrayIndex = (int) (getIndex() / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
         final int listIndex = (arrayIndex == 1)
-                ? (int) ((mIndex % (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1))) / ((long) MAX_COLLECTION_SIZE + 1))
-                : (int) (mIndex / ((long) MAX_COLLECTION_SIZE + 1));
-        values[arrayIndex].get(listIndex).set(this.collectionIndexOf(mIndex), e);
+                ? (int) ((getIndex() % (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1))) / ((long) MAX_COLLECTION_SIZE + 1))
+                : (int) (getIndex() / ((long) MAX_COLLECTION_SIZE + 1));
+        values[arrayIndex].get(listIndex).set(this.indexInCollectionOf(getIndex()), e);
+        mCurrentCollection.currentCollection.set(this.indexInCollectionOf(getIndex()),e);
     }
 
+    //TODO
     @Override
-    public final void add(@Nullable E pData) {
-        if (mSize == Long.MAX_VALUE) throw new IllegalStateException("LongListIterator is full");
+    public final void add(@Nullable final E pData) {
+        if (mSize == Long.MAX_VALUE) throw new IllegalStateException("The collection is full");
         final long index;
-        if (mIndex == NULL_INDEX)
+        if (getIndex() == NULL_INDEX)
             index = MIN_INDEX;
         else
-            index = mIndex;
+            index = getIndex() + 1;
+
         final int arrayIndex = (int) (index / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
         final int listIndex = (arrayIndex == 1)
                 ? (int) ((index % (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1))) / ((long) MAX_COLLECTION_SIZE + 1))
                 : (int) (index / ((long) MAX_COLLECTION_SIZE + 1));
-        if (mSize % MAX_COLLECTION_SIZE == 0) {
-            if (values[arrayIndex].size() == Integer.MAX_VALUE) {
-                values[arrayIndex+1].add(new LinkedList<E>() {
-
-                    @Override
-                    public boolean contains(final Object o) {
-                        final boolean[] result = new boolean[1];
-                        Parallel.For(this, new Parallel.Operation<Object>() {
-                            @Override
-                            public void perform(Object pParameter) {
-                                if ((o == null && pParameter == null) || (o != null && o.equals(pParameter))) {
-                                    synchronized (result) {
-                                        result[0] = true;
-                                    }
-                                }
-                            }
-
-                            @Override
-                            public boolean follow() {
-                                return !result[0];
-                            }
-                        });
-                        return result[0];
-                    }
-                });
-            } else {
-                values[arrayIndex].add(new LinkedList<E>() {
-
-                    @Override
-                    public boolean contains(final Object o) {
-                        final boolean[] result = new boolean[1];
-                        Parallel.For(this, new Parallel.Operation<Object>() {
-                            @Override
-                            public void perform(Object pParameter) {
-                                if ((o == null && pParameter == null) || (o != null && o.equals(pParameter))) {
-                                    synchronized (result) {
-                                        result[0] = true;
-                                    }
-                                }
-                            }
-
-                            @Override
-                            public boolean follow() {
-                                return !result[0];
-                            }
-                        });
-                        return result[0];
-                    }
-                });
-            }
-        }
-        if (values[arrayIndex].get(listIndex).size() == Integer.MAX_VALUE) {
-            long index2 = index;
-            E data = pData;
-            while (index2 < mSize) {
-                data = this.set(index2, data);
-                index2++;
-            }
-            if (!this.addAtEnd(data)) throw new RuntimeException("The value has not been added");
+        if (index == mSize) {
+            this.addAtEnd(pData);
         } else {
-            values[arrayIndex].get(values[arrayIndex].size() - 1).add(collectionIndexOf(index),pData);
+            if (values[arrayIndex].size() - 1 > listIndex || arrayIndex < values.length - 1) {
+                int arrayIndex2 = arrayIndex;
+                int listIndex2 = listIndex;
+                E lastData = values[arrayIndex2].get(listIndex2).removeLast();
+                values[arrayIndex2].get(listIndex2).add(indexInCollectionOf(index),pData);
+                do {
+                    if (listIndex2 < values[arrayIndex2].size() - 1) {
+                        listIndex2++;
+                    } else {
+                        arrayIndex2++;
+                        listIndex2 = 0;
+                    }
+                    final E data = values[arrayIndex2].get(listIndex2).removeLast();
+                    values[arrayIndex2].get(listIndex2).addFirst(lastData);
+                    lastData = data;
+                } while (arrayIndex2 < values.length && listIndex2 < values[arrayIndex2].size());
+            } else {
+                values[arrayIndex].get(listIndex).add(indexInCollectionOf(index),pData);
+            }
+            if (mCurrentCollection.currentCollection != null && index / MAX_COLLECTION_SIZE == getCollectionIndex()) {
+                if (mCurrentCollection.currentCollection.size() == Integer.MAX_VALUE) {
+                    mCurrentCollection.currentCollection.remove(Integer.MAX_VALUE-1);
+                }
+                mCurrentCollection.currentCollection.add(indexInCollectionOf(index),pData);
+            }
+            mSize++;
         }
-        mSize++;
     }
 
     @Override
     public final boolean addAtEnd(@Nullable E pData) {
-        if (mSize == Long.MAX_VALUE) throw new IllegalStateException("LongListIterator is full");
+        if (mSize == Long.MAX_VALUE) throw new IllegalStateException("The list is full");
         final int arrayIndex = (int) (mSize / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
+        final ParallelLinkedList<E> collection;
         if (mSize % MAX_COLLECTION_SIZE == 0) {
             if (values[arrayIndex].size() == Integer.MAX_VALUE) {
-                values[arrayIndex+1].add(new LinkedList<E>() {
-
-                    @Override
-                    public boolean contains(final Object o) {
-                        final boolean[] result = new boolean[1];
-                        Parallel.For(this, new Parallel.Operation<Object>() {
-                            @Override
-                            public void perform(Object pParameter) {
-                                if ((o == null && pParameter == null) || (o != null && o.equals(pParameter))) {
-                                    synchronized (result) {
-                                        result[0] = true;
-                                    }
-                                }
-                            }
-
-                            @Override
-                            public boolean follow() {
-                                return !result[0];
-                            }
-                        });
-                        return result[0];
-                    }
-                });
+                values[arrayIndex+1].add(collection = new ParallelLinkedList<E>());
             } else {
-                values[arrayIndex].add(new LinkedList<E>() {
-
-                    @Override
-                    public boolean contains(final Object o) {
-                        final boolean[] result = new boolean[1];
-                        Parallel.For(this, new Parallel.Operation<Object>() {
-                            @Override
-                            public void perform(Object pParameter) {
-                                if ((o == null && pParameter == null) || (o != null && o.equals(pParameter))) {
-                                    synchronized (result) {
-                                        result[0] = true;
-                                    }
-                                }
-                            }
-
-                            @Override
-                            public boolean follow() {
-                                return !result[0];
-                            }
-                        });
-                        return result[0];
-                    }
-                });
+                values[arrayIndex].add(collection =  new ParallelLinkedList<E>());
+            }
+        } else {
+            collection = values[arrayIndex].get(values[arrayIndex].size() - 1);
+        }
+        boolean result = collection.add(pData);
+        if (result) {
+            if (++mSize / MAX_COLLECTION_SIZE == getCollectionIndex()) {
+                mCurrentCollection.currentCollection.add(indexInCollectionOf(mSize - 1), pData);
             }
         }
-        boolean added = values[arrayIndex].get(values[arrayIndex].size() - 1).add(pData);
-        if (added) {
-            mSize++;
-        }
-        return added;
-
+        return result;
     }
 
     @SuppressWarnings("unchecked")
@@ -837,13 +1241,13 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
         final long[] index = new long[1];
         index[0] = MIN_INDEX;
         final LinkedList<E>[] target = new LinkedList[1];
-        final LinkedList<LinkedList<E>>[] followTarget = new LinkedList[2];
-        followTarget[0] = new LinkedList<>();
-        followTarget[1] = new LinkedList<>();
-        for (final LinkedList<LinkedList<E>> lla : values) {
-            Parallel.For(new ArrayList<>(lla), new Parallel.Operation<LinkedList<E>>() {
+        final ParallelArrayList<ParallelLinkedList<E>>[] followTarget = new ParallelArrayList[2];
+        followTarget[0] = new ParallelArrayList<>();
+        followTarget[1] = new ParallelArrayList<>();
+        for (final Collection<ParallelLinkedList<E>> lla : values) {
+            Parallel.For(new ParallelArrayList<>(lla), new Parallel.Operation<ParallelLinkedList<E>>() {
                 @Override
-                public void perform(LinkedList<E> pParameter) {
+                public void perform(ParallelLinkedList<E> pParameter) {
                     if (target[0] == null) {
                         Parallel.For(pParameter, new Parallel.Operation<E>() {
                             @Override
@@ -890,7 +1294,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
             if (result[0]) {
                 final LinkedList<E>[] previous = new LinkedList[1];
                 previous[0] = target[0];
-                for (LinkedList<LinkedList<E>> ll : followTarget) {
+                for (ArrayList<ParallelLinkedList<E>> ll : followTarget) {
                     Parallel.For(ll, new Parallel.Operation<LinkedList<E>>() {
                         @Override
                         public void perform(LinkedList<E> pParameter) {
@@ -908,14 +1312,17 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                         }
                     });
                 }
-                if (index[0] <= mIndex) {
-                    mIndex--;
+                if (--mSize == 0)
+                    this.setIndex((long)NULL_INDEX);
+                else if (index[0] <= getIndex()) {
+                    this.setIndex(getIndex()-1);
                 }
-                mSize--;
-                if (mSize == 0) mIndex = NULL_INDEX;
-            }
-            for (SizeListener sizeListener : sizeListeners) {
-                sizeListener.change();
+                for (SizeListener sizeListener : sizeListeners) {
+                    sizeListener.change();
+                }
+                if (index[0] / MAX_COLLECTION_SIZE <= getCollectionIndex() && getIndex() / MAX_COLLECTION_SIZE == mCurrentCollection.mCollectionIndex) {
+                    mCurrentCollection.currentCollection = new ParallelArrayList<>(collectionOf(getIndex()));
+                }
             }
         }
         return result[0];
@@ -945,7 +1352,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
         }
 
         final LongListIterator<E> delete = new LongListIterator<>();
-        for (List<E> collection : this.allCollections()) {
+        for (java.util.List<E> collection : this.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
                 @Override
                 public void perform(E pParameter) {
@@ -963,7 +1370,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
             });
         }
 
-        for (List<E> collection : delete.allCollections()) {
+        for (java.util.List<E> collection : delete.allCollections()) {
             Parallel.For(collection, new Parallel.Operation<E>() {
                 @Override
                 public void perform(E pParameter) {
@@ -985,24 +1392,22 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
     public final void clear() {
         values[0].clear();
         values[1].clear();
-        mIndex = NULL_INDEX;
+        this.setIndex((long)NULL_INDEX);
         mSize = 0L;
+        mCurrentCollection = new ListIterator();
     }
 
     @Override
     public final <E2 extends E> void addAll(@NotNull final Long pIndex, @NotNull final CollectionIterator<E2, Long> pCollectionIterator) {
-        if (Long.MAX_VALUE - mSize < pCollectionIterator.size()) throw new IllegalStateException("The collection has too much values");
+        if (Long.MAX_VALUE - mSize < pCollectionIterator.size()) throw new IllegalStateException("The list has too much values");
         if (pIndex < MIN_INDEX || pIndex > mSize) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
+        final java.util.ListIterator<E> iterator = this.collectionsIterator(pIndex).get().listIterator(indexInCollectionOf(pIndex));
         Parallel.Operation<E2> operation = new Parallel.Operation<E2>() {
-            long index = pIndex;
 
             @Override
             public void perform(E2 pParameter) {
-                synchronized (LongListIterator.this) {
-                    LongListIterator.this.add(index,pParameter);
-                }
-                synchronized (this) {
-                    index++;
+                synchronized (iterator) {
+                    iterator.add(pParameter);
                 }
             }
 
@@ -1014,6 +1419,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
         for (Collection<E2> collection : pCollectionIterator.allCollections()) {
             Parallel.For(collection, operation);
         }
+        mSize += pCollectionIterator.size();
     }
 
     @SuppressWarnings("unchecked")
@@ -1028,7 +1434,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                 : (int) (pIndex / ((long) MAX_COLLECTION_SIZE + 1));
         target[0] = values[arrayIndex].get(listIndex);
         if (pIndex / MAX_COLLECTION_SIZE == mSize / MAX_COLLECTION_SIZE) {
-            result[0] = target[0].remove(collectionIndexOf(pIndex));
+            result[0] = target[0].remove(indexInCollectionOf(pIndex));
         } else {
             final LinkedList<LinkedList<E>>[] followTarget = new LinkedList[2];
             followTarget[0] = new LinkedList<>();
@@ -1083,7 +1489,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                     });
                 }
             }
-            result[0] = target[0].remove(collectionIndexOf(pIndex));
+            result[0] = target[0].remove(indexInCollectionOf(pIndex));
             final LinkedList<E>[] previous = new LinkedList[1];
             previous[0] = target[0];
             for (LinkedList<LinkedList<E>> ll : followTarget) {
@@ -1105,13 +1511,19 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                 });
             }
         }
-        if (pIndex <= mIndex) {
-            mIndex--;
+
+        if (--mSize == 0)
+            this.setIndex((long)NULL_INDEX);
+        else if (pIndex <= getIndex()) {
+            this.setIndex(getIndex()-1);
         }
-        mSize--;
-        if (mSize == 0) mIndex = NULL_INDEX;
         for (SizeListener sizeListener : sizeListeners) {
             sizeListener.change();
+        }
+        if (pIndex / MAX_COLLECTION_SIZE == getCollectionIndex() && mSize/MAX_COLLECTION_SIZE <= getCollectionIndex()) {
+            if (result[0] != mCurrentCollection.currentCollection.remove(indexInCollectionOf(pIndex))) throw new RuntimeException("The values are not the same");
+        } else if (pIndex / MAX_COLLECTION_SIZE <= getCollectionIndex()) {
+            mCurrentCollection.currentCollection = new ParallelArrayList<>(collectionOf(getIndex()));
         }
         return result[0];
     }
@@ -1120,12 +1532,15 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
     @Nullable
     public final E get(@NotNull final Long pIndex) {
         if (pIndex < MIN_INDEX || pIndex >= mSize) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
-        final int arrayIndex = (int) (pIndex / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
-        final int listIndex = (arrayIndex == 1)
-                ? (int) ((pIndex % (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1))) / ((long) MAX_COLLECTION_SIZE + 1))
-                : (int) (pIndex / ((long) MAX_COLLECTION_SIZE + 1));
-        //if (values[arrayIndex].get(listIndex) == null) return null;
-        return values[arrayIndex].get(listIndex).get(collectionIndexOf(pIndex));
+        if (pIndex / MAX_COLLECTION_SIZE == getCollectionIndex()) {
+            return mCurrentCollection.get(indexInCollectionOf(pIndex));
+        } else {
+            final int arrayIndex = (int) (pIndex / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
+            final int listIndex = (arrayIndex == 1)
+                    ? (int) ((pIndex % (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1))) / ((long) MAX_COLLECTION_SIZE + 1))
+                    : (int) (pIndex / ((long) MAX_COLLECTION_SIZE + 1));
+            return values[arrayIndex].get(listIndex).get(indexInCollectionOf(pIndex));
+        }
     }
 
     @Override
@@ -1136,8 +1551,14 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
         final int listIndex = (arrayIndex == 1)
                 ? (int) ((pIndex % (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1))) / ((long) MAX_COLLECTION_SIZE + 1))
                 : (int) (pIndex / ((long) MAX_COLLECTION_SIZE + 1));
-        //if (values[arrayIndex].get(listIndex) == null) return null;
-        return values[arrayIndex].get(listIndex).set(collectionIndexOf(pIndex), pData);
+        final ParallelLinkedList<E> collection = values[arrayIndex].get(listIndex);
+        try {
+            return collection.set(indexInCollectionOf(pIndex), pData);
+        } finally {
+            if (pIndex / MAX_COLLECTION_SIZE == getCollectionIndex()) {
+                mCurrentCollection.set(indexInCollectionOf(pIndex), pData);
+            }
+        }
     }
 
     /**
@@ -1145,6 +1566,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
      * @param pIndex Index
      * @param pData data
      * @throws IndexOutOfBoundsException if the index is out of range (index < 0 || index > size())
+     * @throws IllegalStateException if the list is full
      */
     @Override
     public final void add(@NotNull final Long pIndex, @Nullable final E pData) throws IllegalStateException, IndexOutOfBoundsException {
@@ -1158,70 +1580,29 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                     ? (int) ((pIndex % (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1))) / ((long) MAX_COLLECTION_SIZE + 1))
                     : (int) (pIndex / ((long) MAX_COLLECTION_SIZE + 1));
             if (values[arrayIndex].size()-1 < listIndex) {
-                values[arrayIndex].add(new LinkedList<E>() {
+                values[arrayIndex].add(new ParallelLinkedList<E>() {
                     {
                         if (!add(pData)) throw new RuntimeException("The value has not been added");
-                    }
-
-                    @Override
-                    public boolean contains(final Object o) {
-                        final boolean[] result = new boolean[1];
-                        Parallel.For(this, new Parallel.Operation<Object>() {
-                            @Override
-                            public void perform(Object pParameter) {
-                                if ((o == null && pParameter == null) || (o != null && o.equals(pParameter))) {
-                                    synchronized (result) {
-                                        result[0] = true;
-                                    }
-                                }
-                            }
-
-                            @Override
-                            public boolean follow() {
-                                return !result[0];
-                            }
-                        });
-                        return result[0];
                     }
                 });
             } else {
                 if (values[arrayIndex].get(listIndex).size() == Integer.MAX_VALUE) {
                     int arrayIndex2 = arrayIndex;
                     int listIndex2 = listIndex;
+                    ParallelLinkedList<E> collection = null;
                     E lastData = null;
                     do {
                         if (values[arrayIndex2].size() - (listIndex2 + 1) > 0) {
                             final E data = values[arrayIndex2].get(listIndex2).removeLast();
                             if (arrayIndex2 == arrayIndex && listIndex2 == listIndex) {
-                                values[arrayIndex2].get(listIndex2).add(collectionIndexOf(pIndex),pData);
+                                values[arrayIndex2].get(listIndex2).add(indexInCollectionOf(pIndex),pData);
                             } else {
                                 if (values[arrayIndex2].size() < listIndex2 + 1) {
                                     //For Parallel.For final value
                                     final E data2 = lastData;
-                                    values[arrayIndex2].add(new LinkedList<E>() {
+                                    values[arrayIndex2].add(new ParallelLinkedList<E>() {
                                         {
                                             if (!add(data2)) throw new RuntimeException("The value has not been added");
-                                        }
-
-                                        @Override
-                                        public boolean contains(final Object o) {
-                                            final boolean[] result = new boolean[1];
-                                            Parallel.For(this, new Parallel.Operation<Object>() {
-                                                @Override
-                                                public void perform(Object pParameter) {
-                                                    if ((o == null && pParameter == null) || (o != null && o.equals(pParameter))) {
-                                                        synchronized (result) {
-                                                            result[0] = true;
-                                                        }
-                                                    }
-                                                }
-
-                                                @Override
-                                                public boolean follow() {
-                                                    return !result[0];
-                                                }
-                                            });
-                                            return result[0];
                                         }
                                     });
                                 } else {
@@ -1236,62 +1617,43 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                             else
                                 listIndex2++;
                         } else if (values[arrayIndex2].get(listIndex2).size() != Integer.MAX_VALUE) {
-                            values[arrayIndex2].get(listIndex2).add(0,lastData);
+                            collection = values[arrayIndex2].get(listIndex2);
+                            collection.add(0,lastData);
                             lastData = null;
                         } else {
                             final E data2 = lastData;
-                            values[arrayIndex2+1].add(new LinkedList<E>() {
+                            values[arrayIndex2+1].add(collection = new ParallelLinkedList<E>() {
                                 {
                                     if (!add(data2)) throw new RuntimeException("The value has not been added");
-                                }
-
-                                @Override
-                                public boolean contains(final Object o) {
-                                    final boolean[] result = new boolean[1];
-                                    Parallel.For(this, new Parallel.Operation<Object>() {
-                                        @Override
-                                        public void perform(Object pParameter) {
-                                            if ((o == null && pParameter == null) || (o != null && o.equals(pParameter))) {
-                                                synchronized (result) {
-                                                    result[0] = true;
-                                                }
-                                            }
-                                        }
-
-                                        @Override
-                                        public boolean follow() {
-                                            return !result[0];
-                                        }
-                                    });
-                                    return result[0];
                                 }
                             });
                             lastData = null;
                         }
-                    } while (lastData != null);
+                    } while (collection == null);
 
                 } else {
-                    values[arrayIndex].get(listIndex).add(collectionIndexOf(pIndex),pData);
+                    values[arrayIndex].get(listIndex).add(indexInCollectionOf(pIndex),pData);
                 }
             }
+            if (pIndex / MAX_COLLECTION_SIZE == getCollectionIndex() && ++mSize / MAX_COLLECTION_SIZE == getCollectionIndex()) {
+                mCurrentCollection.currentCollection.add(indexInCollectionOf(pIndex), pData);
+            } else if (pIndex / MAX_COLLECTION_SIZE <= getCollectionIndex()) {
+                mCurrentCollection.currentCollection = new ParallelArrayList<>(collectionOf(getIndex()));
+            }
         }
-        if (pIndex <= this.mIndex) this.mIndex++;
     }
 
     @Override
     @NotNull
-    public final Long indexOf(@Nullable final E pData) {
+    public Long indexOf(@Nullable final E pData) {
         final long[] result = new long[1];
         result[0] = NULL_INDEX;
         Parallel.Operation<E> operation = new Parallel.Operation<E>() {
-            long index = NULL_INDEX;
+            long index = MIN_INDEX;
 
             @Override
             public void perform(E pParameter) {
                 if ((pData == pParameter) || (pData != null && pData.equals(pParameter))) {
-                    synchronized (this) {
-                        index++;
-                    }
                     synchronized (result) {
                         result[0] = index;
                     }
@@ -1309,27 +1671,29 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
         };
         for (Collection<E> collection : this.allCollections()) {
             Parallel.For(collection, operation);
+            if (result[0] != NULL_INDEX)
+                break;
         }
         return result[0];
     }
 
     @Override
     @NotNull
-    public final Long lastIndexOf(@Nullable final E pData) {
+    public Long lastIndexOf(@Nullable final E pData) {
         final long[] result = new long[1];
         result[0] = NULL_INDEX;
         Parallel.Operation<E> operation = new Parallel.Operation<E>() {
-            long index = NULL_INDEX;
+            long index = MIN_INDEX;
 
             @Override
             public void perform(E pParameter) {
-                synchronized (this) {
-                    index++;
-                }
-                if ((pData == pParameter) || (pData != null && pData.equals(pParameter))) {
+                if ((pData == pParameter) || (pParameter != null && pParameter.equals(pData))) {
                     synchronized (result) {
                         result[0] = index;
                     }
+                }
+                synchronized (this) {
+                    index++;
                 }
             }
 
@@ -1338,7 +1702,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                 return true;
             }
         };
-        for (List<E> collection : this.allCollections()) {
+        for (java.util.List<E> collection : this.allCollections()) {
             Parallel.For(collection, operation);
         }
         return result[0];
@@ -1346,95 +1710,9 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
 
     @NotNull
     @Override
-    public final ListIterator<E,Long> listIterator() {
-        return new LongListIterator<>(this);
-    }
-
-    @SuppressWarnings("unchecked")
-    @NotNull
-    @Override
-    public final ListIterator<E,Long> listIterator(@NotNull final Long pIndex) {
-        if (pIndex < MIN_INDEX || pIndex >= mSize)
-            throw new IndexOutOfBoundsException(String.valueOf(pIndex));
-        if (pIndex == MIN_INDEX) return listIterator();
-        final LongListIterator<E> result;
-        if (pIndex % MAX_COLLECTION_SIZE == 0) {
-            final LinkedList<LinkedList<E>>[] clone = new LinkedList[2];
-            clone[0] = new LinkedList<>();
-            clone[1] = new LinkedList<>();
-            final long[] index = new long[1];
-            for (int arrayIndex = 0; arrayIndex<values.length; arrayIndex++) {
-                final int finalArrayIndex = arrayIndex;
-                Parallel.For(new ArrayList<>(values[arrayIndex]), new Parallel.Operation<LinkedList<E>>() {
-                    @Override
-                    public void perform(LinkedList<E> pParameter) {
-                        synchronized (index) {
-                            index[0]+=pParameter.size();
-                        }
-                        if (index[0] >= pIndex)
-                            synchronized (clone) {
-                                clone[finalArrayIndex].add(new LinkedList<>(pParameter));
-                            }
-                    }
-
-                    @Override
-                    public boolean follow() {
-                        return true;
-                    }
-                });
-            }
-            java.util.Map<Field,Object> map = new HashMap<>();
-            try {
-                map.put(this.getClass().getDeclaredField("values"), clone);
-                map.put(this.getClass().getDeclaredField("mSize"), mSize - pIndex);
-                result = ca.qc.bergeron.marcantoine.crammeur.librairy.lang.Object.createObject(this.getClass(), map);
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
-            } catch (NoSuchFieldException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
-            }
-        } else {
-            result = new LongListIterator<>();
-            final Parallel.Operation<E> operation = new Parallel.Operation<E>() {
-                long skipCount = 0;
-                @Override
-                public void perform(E pParameter) {
-                    if (skipCount < pIndex) {
-                        synchronized (this) {
-                            skipCount++;
-                        }
-                    } else {
-                        synchronized (result) {
-                            if (!result.addAtEnd(pParameter)) throw new RuntimeException("The value has not been added");
-                        }
-                    }
-                }
-
-                @Override
-                public boolean follow() {
-                    return true;
-                }
-            };
-            long traveled = 0;
-            for (int arrayIndex = 0; arrayIndex<values.length; arrayIndex++) {
-                for (LinkedList<E> linkedList : new ArrayList<>(values[arrayIndex])){
-                    traveled+= linkedList.size();
-                    if (traveled >= pIndex) {
-                        Parallel.For(new ArrayList<>(linkedList), operation);
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
-    @NotNull
-    @Override
-    public final ListIterator<E, Long> subListIterator(@NotNull final Long pFromIndex, @NotNull final Long pToIndex) {
+    public final ca.qc.bergeron.marcantoine.crammeur.librairy.utils.ListIterator<E, Long> subListIterator(@NotNull final Long pFromIndex, @NotNull final Long pToIndex) {
         if (pFromIndex >= pToIndex || pFromIndex < MIN_INDEX || pToIndex >= mSize) throw new IndexOutOfBoundsException(String.valueOf(pFromIndex) + " to " + String.valueOf(pToIndex) + " (excluded)");
-        final ListIterator<E, Long> result = new LongListIterator<>();
+        final ca.qc.bergeron.marcantoine.crammeur.librairy.utils.ListIterator<E, Long> result = new LongListIterator<>();
         Parallel.Operation<E> operation = new Parallel.Operation<E>() {
             long index = MIN_INDEX;
 
@@ -1466,15 +1744,379 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
     public final Iterator<E> iterator() {
         return new Iterator<E>() {
 
+            final class ListIterator implements java.util.List<E> {
+
+                transient ParallelArrayList<E> currentCollection;
+                transient long mCollectionIndex;
+
+                private ListIterator() {
+                    currentCollection = (mIndex != NULL_INDEX)?new ParallelArrayList<>(collectionOf(mIndex)):null;
+                    mCollectionIndex = (mIndex == NULL_INDEX)?NULL_INDEX:mIndex/MAX_COLLECTION_SIZE;
+                }
+
+
+                @Override
+                public final boolean addAll(final int pIndex, @NotNull final Collection<? extends E> c) {
+                    if (pIndex < 0 || pIndex > this.size()) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
+                    final boolean[] result = new boolean[1];
+                    result[0] = !c.isEmpty();
+                    final java.util.List<E> collection = this;
+                    Parallel.For(c, new Parallel.Operation<E>() {
+                        @Override
+                        public void perform(E pParameter) {
+                            synchronized (collection) {
+                                collection.add(pIndex,pParameter);
+                            }
+                        }
+
+                        @Override
+                        public boolean follow() {
+                            return result[0];
+                        }
+                    });
+                    return result[0];
+                }
+
+                @Override
+                public final E get(final int index) {
+                    return currentCollection.get(index);
+                }
+
+                @Override
+                public final E set(final int index, final E element) {
+                    final E result = currentCollection.set(index, element);
+                    final E result2 = LongListIterator.this.set(((mIndex/MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE) + index, element);
+                    if ((result != result2) && (result2 != null && !result2.equals(result))) throw new RuntimeException("The values are not the same");
+                    return result2;
+
+                }
+
+                @Override
+                public final void add(final int index, final E element) {
+                    if (this.size() == Integer.MAX_VALUE) throw new IllegalStateException("The list is full");
+                    if (index < 0 || index > this.size()) throw new IndexOutOfBoundsException(String.valueOf(index));
+                    currentCollection.add(index,element);
+                    LongListIterator.this.add((mIndex/MAX_COLLECTION_SIZE)*MAX_COLLECTION_SIZE+index,element);
+                }
+
+                @Override
+                public final E remove(final int index) {
+                    if (index < 0 || index >= this.size()) throw new IndexOutOfBoundsException(String.valueOf(index));
+                    final E result = currentCollection.remove(index);
+                    final E result2 = LongListIterator.this.remove(((mIndex / MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE) + index);
+                    if ((result != result2) && (result2 != null && !result2.equals(result))) throw new RuntimeException("The values are not the same");
+                    return result2;
+                }
+
+                @Override
+                public final int indexOf(final Object o) {
+                    final int[] result = new int[1];
+                    result[0] = -1;
+                    Parallel.Operation<E> operation = new Parallel.Operation<E>() {
+                        int index = 0;
+
+                        @Override
+                        public void perform(E pParameter) {
+                            if ((o == pParameter) || (pParameter != null && pParameter.equals(o))) {
+                                synchronized (result) {
+                                    result[0] = index;
+                                }
+                            } else {
+                                synchronized (this) {
+                                    index++;
+                                }
+                            }
+                        }
+
+                        @Override
+                        public boolean follow() {
+                            return result[0] == -1;
+                        }
+                    };
+                    Parallel.For(this, operation);
+                    return result[0];
+                }
+
+                @Override
+                public final int lastIndexOf(final Object o) {
+                    final int[] result = new int[1];
+                    result[0] = -1;
+                    Parallel.Operation<E> operation = new Parallel.Operation<E>() {
+                        int index = 0;
+
+                        @Override
+                        public void perform(E pParameter) {
+                            if ((o == pParameter) || (pParameter != null && pParameter.equals(o))) {
+                                synchronized (result) {
+                                    result[0] = index;
+                                }
+                            }
+                            synchronized (this) {
+                                index++;
+                            }
+                        }
+
+                        @Override
+                        public boolean follow() {
+                            return true;
+                        }
+                    };
+                    Parallel.For(this, operation);
+                    return result[0];
+                }
+
+                @NotNull
+                @Override
+                public final java.util.ListIterator<E> listIterator() {
+                    return this.listIterator(0);
+                }
+
+                @NotNull
+                @Override
+                public final java.util.ListIterator<E> listIterator(final int index) {
+                    return currentCollection.listIterator(index);
+                }
+
+                @NotNull
+                @Override
+                public final java.util.List<E> subList(final int fromIndex, final int toIndex) {
+                    return currentCollection.subList(fromIndex, toIndex);
+                }
+
+                @Override
+                public final int size() {
+                    return currentCollection.size();
+                }
+
+                @Override
+                public final boolean isEmpty() {
+                    return currentCollection.isEmpty();
+                }
+
+                @Override
+                public final boolean contains(final Object o) {
+                    final boolean[] result = new boolean[1];
+                    Parallel.For(this, new Parallel.Operation<E>() {
+                        @Override
+                        public void perform(E pParameter) {
+                            if ((o == pParameter) || (pParameter != null && pParameter.equals(o))) {
+                                synchronized (result) {
+                                    result[0] = true;
+                                }
+                            }
+                        }
+
+                        @Override
+                        public boolean follow() {
+                            return !result[0];
+                        }
+                    });
+                    return result[0];
+                }
+
+                @NotNull
+                @Override
+                public final java.util.Iterator<E> iterator() {
+                    return currentCollection.iterator();
+                }
+
+                @NotNull
+                @Override
+                public final Object[] toArray() {
+                    return currentCollection.toArray();
+                }
+
+                @NotNull
+                @Override
+                public final <T1> T1[] toArray(@NotNull final T1[] a) {
+                    return currentCollection.toArray(a);
+                }
+
+                @Override
+                public final boolean add(final E e) {
+                    if (this.size() == Integer.MAX_VALUE) throw new IllegalStateException("The list is full");
+                    return currentCollection.add(e) && LongListIterator.this.addAtEnd(e);
+                }
+
+                @SuppressWarnings("unchecked")
+                @Override
+                public final boolean remove(final Object o) {
+                    return currentCollection.remove(o) && LongListIterator.this.remove((E) o);
+                }
+
+                @SuppressWarnings("SuspiciousMethodCalls")
+                @Override
+                public final boolean containsAll(@NotNull final Collection<?> c) {
+                    final boolean[] result = new boolean[1];
+                    result[0] = !c.isEmpty();
+                    final Collection<E> collection = this;
+                    Parallel.For(c, new Parallel.Operation<Object>() {
+                        @Override
+                        public void perform(Object pParameter) {
+                            if (!collection.contains(pParameter)) {
+                                synchronized (result) {
+                                    result[0] = false;
+                                }
+                            }
+                        }
+
+                        @Override
+                        public boolean follow() {
+                            return result[0];
+                        }
+                    });
+                    return result[0];
+                }
+
+                @Override
+                public final boolean addAll(@NotNull final Collection<? extends E> c) {
+                    final boolean[] result = new boolean[1];
+                    result[0] = !c.isEmpty();
+                    final Collection<E> collection = this;
+                    Parallel.For(c, new Parallel.Operation<E>() {
+                        @Override
+                        public void perform(E pParameter) {
+                            synchronized (collection) {
+                                if (!collection.add(pParameter)) {
+                                    synchronized (result) {
+                                        result[0] = false;
+                                    }
+                                }
+                            }
+
+                        }
+
+                        @Override
+                        public boolean follow() {
+                            return result[0];
+                        }
+                    });
+                    return result[0];
+                }
+
+                @SuppressWarnings("SuspiciousMethodCalls")
+                @Override
+                public final boolean removeAll(@NotNull final Collection<?> c) {
+                    final boolean[] result = new boolean[1];
+                    result[0] = !c.isEmpty();
+                    final Collection<E> collection = this;
+                    Parallel.For(c, new Parallel.Operation<Object>() {
+                        @Override
+                        public void perform(Object pParameter) {
+                                if (!collection.remove(pParameter)) {
+                                    synchronized (result) {
+                                        result[0] = false;
+                                    }
+                                }
+                        }
+
+                        @Override
+                        public boolean follow() {
+                            return result[0];
+                        }
+                    });
+                    return result[0];
+                }
+
+                @Override
+                public final boolean retainAll(@NotNull final Collection<?> c) {
+                    final boolean[] result = new boolean[1];
+                    result[0] = !c.isEmpty();
+                    final Collection<E> removes = new ArrayList<>(c.size());
+                    Parallel.For(this, new Parallel.Operation<E>() {
+                        @Override
+                        public void perform(E pParameter) {
+                            if (!c.contains(pParameter) && !removes.add(pParameter)) {
+                                synchronized (result) {
+                                    result[0] = false;
+                                }
+                            }
+                        }
+
+                        @Override
+                        public boolean follow() {
+                            return result[0];
+                        }
+                    });
+                    return result[0] && this.removeAll(removes);
+                }
+
+                @Override
+                public final void clear() {
+                    if (!this.isEmpty()) {
+                        if (!LongListIterator.this.isEmpty()) {
+                            {
+                                final ArrayList<E> arrayList = new ArrayList<>(currentCollection);
+                                currentCollection.clear();
+                                final java.util.Map<Long, E> rollback = new TreeMap<>();
+                                try {
+                                    Parallel.For(arrayList, new Parallel.Operation<E>() {
+                                        final long startIndex = mIndex;
+                                        long index = 0;
+                                        @Override
+                                        public void perform(E pParameter) {
+                                            final E delete = LongListIterator.this.remove((startIndex/MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE);
+                                            synchronized (rollback) {
+                                                rollback.put(((startIndex / MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE) + index, delete);
+                                            }
+                                            if ((delete == null && pParameter != null) || (pParameter != null && !pParameter.equals(delete))) {
+                                                throw new RuntimeException("The values are not the same");
+                                            }
+                                            synchronized (this) {
+                                                index++;
+                                            }
+                                        }
+
+                                        @Override
+                                        public boolean follow() {
+                                            return true;
+                                        }
+                                    });
+                                } catch (Throwable t) {
+                                    Parallel.For(rollback.keySet(), new Parallel.Operation<Long>() {
+                                        @Override
+                                        public void perform(Long pParameter) {
+                                            synchronized (LongListIterator.this) {
+                                                LongListIterator.this.add(pParameter, rollback.get(pParameter));
+                                            }
+                                        }
+
+                                        @Override
+                                        public boolean follow() {
+                                            return true;
+                                        }
+                                    });
+                                    t.printStackTrace();
+                                    throw t;
+                                }
+                            }
+                            if (((mIndex / MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE) < (((mSize-1) / MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE)) {
+                                currentCollection = new ParallelArrayList<>(LongListIterator.this.collectionOf(mIndex));
+                                final Runtime runtime = Runtime.getRuntime();
+                                if (runtime.maxMemory() - runtime.freeMemory() > runtime.maxMemory() * 0.7f)
+                                    System.gc();
+                            }
+                        } else {
+                            currentCollection.clear();
+                        }
+                    }
+                }
+
+            }
+
             private transient long mIndex = NULL_INDEX;
+            private transient ListIterator mCurrentCollection = new ListIterator();
 
             @Nullable
             @Override
             public E next() throws NoSuchElementException {
                 if (mIndex + 1 < mSize)
-                    mSize++;
+                    mIndex++;
                 else
                     throw new NoSuchElementException();
+                if (mIndex / MAX_COLLECTION_SIZE != mCurrentCollection.mCollectionIndex) {
+                    mCurrentCollection = new ListIterator();
+                }
                 return get();
             }
 
@@ -1482,12 +2124,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
             @Override
             public E get() throws IndexOutOfBoundsException {
                 if (mIndex < MIN_INDEX || mIndex >= mSize) throw new IndexOutOfBoundsException(String.valueOf(mIndex));
-                final int arrayIndex = (int) (mIndex / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
-                final int listIndex = (arrayIndex == 1)
-                        ? (int) ((mIndex % (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1))) / ((long) MAX_COLLECTION_SIZE + 1))
-                        : (int) (mIndex / ((long) MAX_COLLECTION_SIZE + 1));
-                //if (values[arrayIndex].get(listIndex) == null) return null;
-                return values[arrayIndex].get(listIndex).get(collectionIndexOf(mIndex));
+                return mCurrentCollection.get(indexInCollectionOf(mIndex));
             }
 
             @Override
@@ -1502,22 +2139,25 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                     throw new NoSuchElementException();
                 else
                     mIndex--;
+                if (mIndex / MAX_COLLECTION_SIZE != mCurrentCollection.mCollectionIndex) {
+                    mCurrentCollection = new ListIterator();
+                }
                 return get();
             }
 
             @Override
             public void add(@Nullable E pEntity) {
-                LongListIterator.this.add(mIndex,pEntity);
+                mCurrentCollection.add(indexInCollectionOf(mIndex),pEntity);
             }
 
             @Override
             public void set(@Nullable E pEntity) {
-                LongListIterator.this.set(mIndex,pEntity);
+                mCurrentCollection.set(indexInCollectionOf(mIndex), pEntity);
             }
 
             @Override
             public void remove() {
-                LongListIterator.this.remove(mIndex);
+                mCurrentCollection.remove(indexInCollectionOf(mIndex));
             }
 
             @Override
@@ -1529,40 +2169,55 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
 
     @SuppressWarnings("unchecked")
     @Override
-    public Iterator<List<E>> collectionIterator() {
-        return new Iterator<List<E>>() {
+    public Iterator<java.util.List<E>> collectionsIterator() {
+        return collectionsIterator((long)NULL_INDEX);
+    }
 
-            final class List implements java.util.List<E> {
+    //TODO
+    @SuppressWarnings("unchecked")
+    @Override
+    public Iterator<java.util.List<E>> collectionsIterator(@NotNull final Long pIndex) {
+        if ((pIndex != NULL_INDEX && pIndex < MIN_INDEX) || pIndex >= mSize) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
+        return new Iterator<java.util.List<E>>() {
+
+            private transient final Iterator<java.util.List<E>> iterator = this;
+            private transient long mIndex = pIndex;
+
+            final class ListIterator implements java.util.List<E> {
 
                 {
-                    final List list = this;
                     sizeListeners.add(new SizeListener() {
-
                         @Override
                         public void change() {
-                            boolean changeNeeded;
-                            if (changeNeeded = mSize == 0) {
-                                list.mIndex = NULL_INDEX;
-                            } else if (changeNeeded = list.mIndex >= mSize) {
-                                list.mIndex = mSize - 1;
+                            try {
+                                Field field = iterator.getClass().getDeclaredField("mIndex");
+                                boolean b = field.isAccessible();
+                                try {
+                                    field.setAccessible(true);
+                                    long index = field.getLong(iterator);
+                                    if (index >= mSize) {
+                                        field.set(iterator,mSize-1);
+                                    }
+                                } catch (IllegalAccessException e) {
+                                    e.printStackTrace();
+                                    throw new RuntimeException(e);
+                                } finally {
+                                    field.setAccessible(b);
+                                }
+                            } catch (NoSuchFieldException e) {
+                                e.printStackTrace();
+                                throw new RuntimeException(e);
                             }
-                            if (changeNeeded) {
-                                list.currentCollection = new ArrayList<>(collectionOf(list.mIndex));
-                                Runtime runtime = Runtime.getRuntime();
-                                if (runtime.maxMemory() - runtime.freeMemory() > runtime.maxMemory() * 0.7f)
-                                    System.gc();
-                            }
-
                         }
                     });
                 }
 
-                private ArrayList<E> currentCollection;
-                private transient long mIndex;
+                transient ParallelArrayList<E> currentCollection;
+                transient long mCollectionIndex;
 
-                private List(long pIndex) {
-                    mIndex = pIndex;
-                    currentCollection = new ArrayList<>(collectionOf(pIndex));
+                private ListIterator() {
+                    currentCollection = (mIndex != NULL_INDEX)?new ParallelArrayList<>(collectionOf(mIndex)):null;
+                    mCollectionIndex = (mIndex != NULL_INDEX)?mIndex/MAX_COLLECTION_SIZE:NULL_INDEX;
                 }
 
 
@@ -1646,16 +2301,17 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                     final int[] result = new int[1];
                     result[0] = -1;
                     Parallel.Operation<E> operation = new Parallel.Operation<E>() {
-                        int index = -1;
+                        int index = 0;
 
                         @Override
                         public void perform(E pParameter) {
-                            synchronized (this) {
-                                index++;
-                            }
                             if ((o == pParameter) || (pParameter != null && pParameter.equals(o))) {
                                 synchronized (result) {
                                     result[0] = index;
+                                }
+                            } else {
+                                synchronized (this) {
+                                    index++;
                                 }
                             }
                         }
@@ -1674,17 +2330,17 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                     final int[] result = new int[1];
                     result[0] = -1;
                     Parallel.Operation<E> operation = new Parallel.Operation<E>() {
-                        int index = -1;
+                        int index = 0;
 
                         @Override
                         public void perform(E pParameter) {
-                            synchronized (this) {
-                                index++;
-                            }
                             if ((o == pParameter) || (pParameter != null && pParameter.equals(o))) {
                                 synchronized (result) {
                                     result[0] = index;
                                 }
+                            }
+                            synchronized (this) {
+                                index++;
                             }
                         }
 
@@ -1700,13 +2356,67 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                 @NotNull
                 @Override
                 public final java.util.ListIterator<E> listIterator() {
-                    return currentCollection.listIterator();
+                    return listIterator(-1);
                 }
 
                 @NotNull
                 @Override
                 public final java.util.ListIterator<E> listIterator(final int index) {
-                    return currentCollection.listIterator(index);
+                    return new java.util.ListIterator<E>() {
+
+                        private transient long mIndex2 = (mIndex / MAX_COLLECTION_SIZE) + index;
+
+                        @Override
+                        public boolean hasNext() {
+                            return indexInCollectionOf(mIndex2) + 1 < Integer.MAX_VALUE;
+                        }
+
+                        @Override
+                        public E next() {
+                            if (hasNext())
+                                return currentCollection.get(indexInCollectionOf(++mIndex2));
+                            else
+                                throw new NoSuchElementException();
+                        }
+
+                        @Override
+                        public boolean hasPrevious() {
+                            return indexInCollectionOf(mIndex2) - 1 >= 0;
+                        }
+
+                        @Override
+                        public E previous() {
+                            if (hasPrevious())
+                                return currentCollection.get(indexInCollectionOf(--mIndex2));
+                            else
+                                throw new NoSuchElementException();
+                        }
+
+                        @Override
+                        public int nextIndex() {
+                            return indexInCollectionOf(mIndex2) + 1;
+                        }
+
+                        @Override
+                        public int previousIndex() {
+                            return indexInCollectionOf(mIndex2) - 1;
+                        }
+
+                        @Override
+                        public void remove() {
+                            mCurrentCollection.remove(indexInCollectionOf(mIndex2));
+                        }
+
+                        @Override
+                        public void set(E e) {
+                            mCurrentCollection.set(indexInCollectionOf(mIndex2),e);
+                        }
+
+                        @Override
+                        public void add(E e) {
+                            mCurrentCollection.add(e);
+                        }
+                    };
                 }
 
                 @NotNull
@@ -1731,7 +2441,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                     Parallel.For(this, new Parallel.Operation<E>() {
                         @Override
                         public void perform(E pParameter) {
-                            if ((o == null && pParameter == null) || (pParameter != null && pParameter.equals(o)))
+                            if ((o == pParameter) || (pParameter != null && pParameter.equals(o)))
                                 synchronized (result) {
                                 }
                         }
@@ -1784,7 +2494,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                         result = LongListIterator.this.remove((E) o);
                         if (!result) throw new RuntimeException("The value has not been removed");
                         if ((((mIndex/MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE) != (((mSize-1) / MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE)) ) {
-                            currentCollection = new ArrayList<>(collectionOf(mIndex));
+                            currentCollection = new ParallelArrayList<>(collectionOf(mIndex));
                         }
                     }
                     return result;
@@ -1902,7 +2612,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                                             synchronized (rollback) {
                                                 rollback.put(((startIndex / MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE) + index, delete);
                                             }
-                                            if ((delete == null && pParameter != null) || (delete != null && !delete.equals(pParameter))) {
+                                            if ((delete == null && pParameter != null) || (pParameter != null && !pParameter.equals(delete))) {
                                                 throw new RuntimeException("The values are not the same");
                                             }
                                             synchronized (this) {
@@ -1934,7 +2644,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                                 }
                             }
                             if (((mIndex / MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE) < (((mSize-1) / MAX_COLLECTION_SIZE) * MAX_COLLECTION_SIZE)) {
-                                currentCollection = new ArrayList<>(LongListIterator.this.collectionOf(mIndex));
+                                currentCollection = new ParallelArrayList<>(LongListIterator.this.collectionOf(mIndex));
                                 final Runtime runtime = Runtime.getRuntime();
                                 if (runtime.maxMemory() - runtime.freeMemory() > runtime.maxMemory() * 0.7f)
                                     System.gc();
@@ -1947,43 +2657,33 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
 
             }
 
-            private transient long mIndex = NULL_INDEX;
+            private ListIterator mCurrentCollection = new ListIterator();
 
             @Override
             public final boolean hasNext() {
                 return (mIndex == NULL_INDEX)
-                        ?mSize != 0
+                        ?mSize > 0
                         :mIndex + MAX_COLLECTION_SIZE < mSize && mIndex + MAX_COLLECTION_SIZE > MIN_INDEX;
             }
 
             @Override
             public final java.util.List<E> next() throws NoSuchElementException {
-                if (mIndex == NULL_INDEX) {
+                if (mIndex == NULL_INDEX)
                     mIndex = MIN_INDEX;
-                } else if (mIndex + MAX_COLLECTION_SIZE < mSize && mIndex + MAX_COLLECTION_SIZE >= MIN_INDEX) {
-                    mIndex += MAX_COLLECTION_SIZE;
-                } else {
+                else if (mIndex + (MAX_COLLECTION_SIZE - indexInCollectionOf(mIndex)) < mSize && mIndex + MAX_COLLECTION_SIZE >= MIN_INDEX)
+                    mIndex += MAX_COLLECTION_SIZE - indexInCollectionOf(mIndex);
+                else
                     throw new NoSuchElementException();
-                }
-                try {
-                    return new List(mIndex);
-                } finally {
-                    final Runtime runtime = Runtime.getRuntime();
-                    if (runtime.maxMemory() - runtime.freeMemory() > runtime.maxMemory() * 0.7f)
-                        System.gc();
-                }
+                return get();
             }
 
             @Nullable
             @Override
             public java.util.List<E> get() throws IndexOutOfBoundsException {
-                try {
-                    return new List(mIndex);
-                } finally {
-                    final Runtime runtime = Runtime.getRuntime();
-                    if (runtime.maxMemory() - runtime.freeMemory() > runtime.maxMemory() * 0.7f)
-                        System.gc();
+                if (mIndex / MAX_COLLECTION_SIZE != mCurrentCollection.mCollectionIndex) {
+                    mCurrentCollection = new ListIterator();
                 }
+                return mCurrentCollection;
             }
 
             @Override
@@ -1994,66 +2694,42 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
             @Nullable
             @Override
             public java.util.List<E> previous() throws NoSuchElementException {
-                if (mIndex - MAX_COLLECTION_SIZE >= MIN_INDEX){
-                    mIndex-=MAX_COLLECTION_SIZE;
-                } else
+                if (mIndex - (MAX_COLLECTION_SIZE - indexInCollectionOf(mIndex)) >= MIN_INDEX)
+                    mIndex -= MAX_COLLECTION_SIZE - indexInCollectionOf(mIndex);
+                else
                     throw new NoSuchElementException();
-                try {
-                    return new List(mIndex);
-                } finally {
-                    final Runtime runtime = Runtime.getRuntime();
-                    if (runtime.maxMemory() - runtime.freeMemory() > runtime.maxMemory() * 0.7f)
-                        System.gc();
-                }
+                return get();
             }
 
             @Override
             public void add(@Nullable java.util.List<E> pEntity) {
-                {
-                    List list = new List(mIndex);
-                    if (list.size() + pEntity.size() == Integer.MAX_VALUE || list.size() + pEntity.size() < MIN_INDEX) throw new IllegalStateException("The list is full");
-                    list.addAll(pEntity);
-                }
-                final Runtime runtime = Runtime.getRuntime();
-                if (runtime.maxMemory() - runtime.freeMemory() > runtime.maxMemory() * 0.7f)
-                    System.gc();
+                if (mCurrentCollection.size() + pEntity.size() < 0) throw new IllegalStateException("The list has too much elements");
+                mCurrentCollection.addAll(indexInCollectionOf(mIndex), pEntity);
             }
 
             @Override
             public void set(@Nullable java.util.List<E> pEntity) {
-                {
-                    final List list = new List(mIndex);
-                    if (pEntity.size() != list.size()) throw new IllegalStateException("The lists are not the same size");
-                    Parallel.For(pEntity, new Parallel.Operation<E>() {
-                        private int index = 0;
-                        @Override
-                        public void perform(E pParameter) {
-                            list.set(index,pParameter);
-                            synchronized (this) {
-                                index++;
-                            }
+                if (pEntity.size() != mCurrentCollection.size()) throw new IllegalStateException("The lists are not the same size");
+                Parallel.For(pEntity, new Parallel.Operation<E>() {
+                    private int index = 0;
+                    @Override
+                    public void perform(E pParameter) {
+                        mCurrentCollection.set(index,pParameter);
+                        synchronized (this) {
+                            index++;
                         }
+                    }
 
-                        @Override
-                        public boolean follow() {
-                            return true;
-                        }
-                    });
-                }
-                final Runtime runtime = Runtime.getRuntime();
-                if (runtime.maxMemory() - runtime.freeMemory() > runtime.maxMemory() * 0.7f)
-                    System.gc();
+                    @Override
+                    public boolean follow() {
+                        return true;
+                    }
+                });
             }
 
             @Override
             public void remove() {
-                {
-                    if (mIndex < MIN_INDEX) throw new IllegalStateException(String.valueOf(mIndex));
-                    new List(mIndex).remove(collectionIndexOf(mIndex));
-                }
-                final Runtime runtime = Runtime.getRuntime();
-                if (runtime.maxMemory() - runtime.freeMemory() > runtime.maxMemory() * 0.7f)
-                    System.gc();
+                mCurrentCollection.clear();
             }
 
         };

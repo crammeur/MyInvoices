@@ -208,17 +208,17 @@ public class ObjectAdapter implements JsonDeserializer<java.lang.Object>, Instan
                 for (Field field : c.getDeclaredFields()) {
                     if (!Modifier.isTransient(field.getModifiers()) && (!Modifier.isFinal(field.getModifiers()) && !Modifier.isStatic(field.getModifiers()))) {
                         final boolean b = field.isAccessible();
-                        field.setAccessible(true);
-                        String name = field.getName();
-                        if (((JsonObject) result).has(name))
-                            name = field.getType().getName() + "." + field.getName();
-                        final Class type;
-                        if (field.getGenericType() instanceof ParameterizedType) {
-                            type = TypeToken.getParameterized(((ParameterizedType) field.getGenericType()).getRawType(), ((ParameterizedType) field.getGenericType()).getActualTypeArguments()).getRawType();
-                        } else {
-                            type = TypeToken.get(field.getType()).getRawType();
-                        }
                         try {
+                            field.setAccessible(true);
+                            String name = field.getName();
+                            if (((JsonObject) result).has(name))
+                                name = field.getType().getName() + "." + field.getName();
+                            final Class type;
+                            if (field.getGenericType() instanceof ParameterizedType) {
+                                type = TypeToken.getParameterized(((ParameterizedType) field.getGenericType()).getRawType(), ((ParameterizedType) field.getGenericType()).getActualTypeArguments()).getRawType();
+                            } else {
+                                type = TypeToken.get(field.getType()).getRawType();
+                            }
                             if (type.isPrimitive()) {
                                 if (Number.class.isAssignableFrom(type))
                                     ((JsonObject) result).addProperty(name, (Number) field.get(src));
@@ -242,8 +242,9 @@ public class ObjectAdapter implements JsonDeserializer<java.lang.Object>, Instan
                         } catch (IllegalAccessException e) {
                             e.printStackTrace();
                             throw new RuntimeException(e);
+                        } finally {
+                            field.setAccessible(b);
                         }
-                        field.setAccessible(b);
                     }
                 }
             } while ((c = c.getSuperclass()) != null);

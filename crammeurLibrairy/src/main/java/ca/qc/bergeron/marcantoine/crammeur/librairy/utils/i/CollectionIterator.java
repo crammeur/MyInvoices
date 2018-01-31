@@ -34,7 +34,7 @@ public interface CollectionIterator<E, S extends Serializable> extends ca.qc.ber
      */
     int collectionSizeOf(@NotNull S pIndex) throws IndexOutOfBoundsException;
 
-    int collectionIndex();
+    int indexInCollection();
 
     int nextIndex();
 
@@ -47,7 +47,7 @@ public interface CollectionIterator<E, S extends Serializable> extends ca.qc.ber
      * @return Index of specific collection where index is
      * @throws IndexOutOfBoundsException
      */
-    int collectionIndexOf(@NotNull S pIndex) throws IndexOutOfBoundsException;
+    int indexInCollectionOf(@NotNull S pIndex) throws IndexOutOfBoundsException;
 
     boolean hasNextCollection();
 
@@ -97,6 +97,8 @@ public interface CollectionIterator<E, S extends Serializable> extends ca.qc.ber
     @Override
     Iterator<E> iterator();
 
-    <T extends Collection<E>> Iterator<T> collectionIterator();
+    <T extends Collection<E>> Iterator<T> collectionsIterator();
+
+    <T extends Collection<E>> Iterator<T> collectionsIterator(@NotNull S pIndex);
 
 }

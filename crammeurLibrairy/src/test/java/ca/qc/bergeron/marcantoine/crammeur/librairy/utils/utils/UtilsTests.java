@@ -4,14 +4,13 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
-import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.DataIntegerListIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.LongListIterator;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.Parallel;
 import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.ListIterator;
@@ -24,34 +23,16 @@ public class UtilsTests {
 
     @Test
     public void testDataIntegerListIterator() {
-        ListIterator<Data<Integer>, Integer> dc;
-        dc = new DataIntegerListIterator<Data<Integer>>();
-        Data<Integer> data = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Integer>() {
-            Integer Id = null;
-
-            @Nullable
-            @Override
-            public Integer getId() {
-                return Id;
-            }
-
-            @Override
-            public void setId(@Nullable Integer pId) {
-                Id = pId;
-            }
-        };
-        dc.add(data);
-        Assert.assertTrue(dc.contains(data));
     }
 
     @Test
     public void testDataLongListIterator() throws InterruptedException {
-        final long count = 3500000;
+        final long count = 10000;
         final ListIterator<Data<Long>, Long> dli = new LongListIterator<Data<Long>>();
         final ListIterator<Data<Long>, Long> dli2 = new LongListIterator<>();
         Assert.assertTrue(dli.equals(dli2));
         Assert.assertTrue(dli.isEmpty());
-        final Data<Long> data = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
+        Data<Long> data = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
             Long Id = null;
 
             @Nullable
@@ -91,10 +72,9 @@ public class UtilsTests {
         dli.add(data2);
         Assert.assertTrue(dli.contains(data) && dli.contains(data2));
         Assert.assertTrue(dli.hasNext());
-        Assert.assertTrue(dli.next().getId() == null);
+        Assert.assertTrue(dli.next().getId() == 1L);
         Assert.assertTrue(dli.hasPrevious());
-        Assert.assertTrue(dli.hasPrevious());
-        Assert.assertTrue(dli.previous().getId() == 1L);
+        Assert.assertTrue(dli.previous().getId() == null);
         Assert.assertTrue(!dli.hasPrevious());
         Assert.assertTrue(dli.hasNext());
         for (int index = 0; index < 10; index++) {
@@ -115,6 +95,7 @@ public class UtilsTests {
             Assert.assertTrue(dli.addAtEnd(data3));
         }
         Assert.assertTrue(!dli.hasPrevious());
+        dli.next();
         for (int index = 0; index < 10; index++) {
             Assert.assertTrue(dli.next().getId() == null);
         }
@@ -124,9 +105,8 @@ public class UtilsTests {
             @Override
             public void run() {
                 for (long index = 0; index < count; index++) {
-                    final long i = index;
-                    final Data<Long> data2 = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
-                        Long Id = i;
+                    Data<Long> data3 = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
+                        Long Id = null;
 
                         @Nullable
                         @Override
@@ -139,12 +119,13 @@ public class UtilsTests {
                             this.Id = pId;
                         }
                     };
+                    data3.setId(index);
                     synchronized (dli) {
-                        dli.addAtEnd(data2);
+                        dli.addAtEnd(data3);
 
                     }
                     synchronized (dli2) {
-                        dli2.addAtEnd(data2);
+                        dli2.addAtEnd(data3);
                     }
                     System.out.println("Index : " + String.valueOf(index));
                 }
@@ -158,8 +139,22 @@ public class UtilsTests {
                 Thread.sleep(0,1);
             }
         }
-        final LongListIterator<Data<Long>> dl3 = new LongListIterator<>();
-        for(List<Data<Long>> list  : dli.<List<Data<Long>>>allCollections()) {
+        final LongListIterator<Data<Long>> dli3 = new LongListIterator<>();
+        Parallel.For(dli2, new Parallel.Operation<Data<Long>>() {
+            @Override
+            public void perform(Data<Long> pParameter) {
+                System.out.println(pParameter);
+                synchronized (dli3) {
+                    dli3.addAtEnd(pParameter);
+                }
+            }
+
+            @Override
+            public boolean follow() {
+                return true;
+            }
+        });
+        /*for(List<Data<Long>> list  : dli.<List<Data<Long>>>allCollections()) {
             Parallel.For((Iterable<? extends Data<Long>>) list, new Parallel.Operation<Data<Long>>() {
                 @Override
                 public void perform(Data<Long> pParameter) {
@@ -174,7 +169,7 @@ public class UtilsTests {
                     return true;
                 }
             });
-        }
+        }*/
         //Assert.assertTrue(dli.size().equals(dl3.size()));
         //Assert.assertTrue(dli.equals(dl3));
 
@@ -203,9 +198,15 @@ public class UtilsTests {
         Assert.assertTrue(collection.remove(data2));
         Assert.assertTrue(collection.size() == dli2.nextCollection().size());
         Assert.assertTrue(dli.equals(dli2));
-        System.out.println("dil equals dli2");
-        Assert.assertTrue(collection.remove(new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
-            Long Id = count-1;
+        System.out.println("dli equals dli2");
+        final long i = count-1;
+        Data<Long> data3 = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
+
+            Long Id = null;
+
+            {
+                setId(i);
+            }
 
             @Nullable
             @Override
@@ -215,13 +216,16 @@ public class UtilsTests {
 
             @Override
             public void setId(@Nullable Long pId) {
-
+                this.Id = pId;
             }
-        }));
+        };
+        Assert.assertTrue(collection.remove(data3));
         System.out.println("Remove last data");
+        Assert.assertTrue(!collection.contains(data3));
         Assert.assertTrue(!dli.equals(dli2));
-        ListIterator<Data<Long>,Long> li =  dli2.<Data<Long>>listIterator(dli2.size()/2);
-        Assert.assertTrue(li.size().equals(dli2.size()/2));
+        Assert.assertTrue(dli2.getCollection().addAll(dli2.size().intValue()/2, new ArrayList<>(dli2.getCollection())));
+        Assert.assertTrue(dli3.nextCollection().addAll(dli3.size().intValue()/2, new ArrayList<>(dli3.getCollection())));
+        Assert.assertTrue(dli2.equals(dli3));
     }
 
     @Test

@@ -50,12 +50,6 @@ public interface ListIterator<E, S extends Serializable> extends CollectionItera
     List<E> collectionOf(@NotNull S pIndex) throws IndexOutOfBoundsException;
 
     @NotNull
-    ListIterator<E, S> listIterator();
-
-    @NotNull
-    ListIterator<E, S> listIterator(@NotNull S pIndex);
-
-    @NotNull
     ListIterator<E, S> subListIterator(@NotNull S pIndex1, @NotNull S pIndex2);
 
     boolean equals(@Nullable ListIterator<E, S> pListIterator);

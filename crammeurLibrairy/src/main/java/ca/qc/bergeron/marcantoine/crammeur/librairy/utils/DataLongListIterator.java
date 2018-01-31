@@ -12,7 +12,7 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.DataListIterator;
  * Created by Marc-Antoine on 2017-12-03.
  */
 
-public final class DataLongListIterator<T extends Data<Long>> extends LongListIterator<T> implements DataListIterator<T,Long> {
+public class DataLongListIterator<T extends Data<Long>> extends LongListIterator<T> implements DataListIterator<T,Long> {
 
     @Override
     @NotNull
@@ -20,19 +20,11 @@ public final class DataLongListIterator<T extends Data<Long>> extends LongListIt
         final long[] result = new long[1];
         result[0] = NULL_INDEX;
         Parallel.Operation<T> operation = new Parallel.Operation<T>() {
-            boolean follow = true;
-            long index = NULL_INDEX;
+            long index = MIN_INDEX;
 
             @Override
             public void perform(T pParameter) {
-                if (pParameter != null && ((pKey == null && pParameter.getId() == null) || (pKey != null && pKey.equals(pParameter.getId())))) {
-                    synchronized (this) {
-                        if (index == NULL_INDEX)
-                            index = MIN_INDEX;
-                        else
-                            index++;
-                        follow = false;
-                    }
+                if (pParameter != null && ((pKey == null && pParameter.getId() == null) || (pParameter.getId() != null && pParameter.getId().equals(pKey)))) {
                     synchronized (result) {
                         result[0] = index;
                     }
@@ -45,7 +37,7 @@ public final class DataLongListIterator<T extends Data<Long>> extends LongListIt
 
             @Override
             public boolean follow() {
-                return follow;
+                return result[0] == NULL_INDEX;
             }
         };
         for (Collection<T> collection : this.allCollections()) {
@@ -63,28 +55,17 @@ public final class DataLongListIterator<T extends Data<Long>> extends LongListIt
         final long[] result = new long[1];
         result[0] = NULL_INDEX;
         Parallel.Operation<T> operation = new Parallel.Operation<T>() {
-            long index = NULL_INDEX;
+            long index = MIN_INDEX;
 
             @Override
             public void perform(T pParameter) {
-                synchronized (this) {
-                    if (index == NULL_INDEX)
-                        index = MIN_INDEX;
-                    else
-                        index++;
+                if (pParameter != null && ((pKey == null && pParameter.getId() == null) || (pParameter.getId() != null && pParameter.getId().equals(pKey)))) {
+                    synchronized (result) {
+                        result[0] = index;
+                    }
                 }
-                if (pParameter != null) {
-                    boolean equals;
-                    if (pKey == null) {
-                        equals = pParameter.getId() == null;
-                    } else {
-                        equals = pKey.equals(pParameter.getId());
-                    }
-                    if (equals) {
-                        synchronized (result) {
-                            result[0] = index;
-                        }
-                    }
+                synchronized (this) {
+                    index++;
                 }
             }
 
