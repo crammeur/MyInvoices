@@ -447,9 +447,13 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
 
     private transient final ParallelArrayList<SizeListener> sizeListeners = new ParallelArrayList<>();
 
+    //TODO
     public LongListIterator(final CollectionIterator<E,? extends Serializable> pCollectionIterator) {
         values[0] = new ParallelArrayList<>();
         values[1] = new ParallelArrayList<>();
+        if (!Number.class.isAssignableFrom(pCollectionIterator.size().getClass()) && pCollectionIterator.size().toString().compareTo("\uFFFF\uFFFF\uFFFF\u7FFF") > 0) {
+            throw new RuntimeException("The collection have too much elements");
+        }
         final Parallel.Operation<Collection<E>> operation = new Parallel.Operation<Collection<E>>() {
             @Override
             public void perform(Collection<E> pParameter) {
@@ -457,7 +461,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                 final ParallelLinkedList<E> parallelLinkedList = new ParallelLinkedList<>(pParameter);
                 synchronized (LongListIterator.this) {
                     values[arrayIndex].add(parallelLinkedList);
-                    mSize+=pParameter.size();
+                    mSize+=parallelLinkedList.size();
                 }
             }
 
@@ -1332,58 +1336,60 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
     public final <E2 extends E> boolean retainAll(@NotNull CollectionIterator<E2, Long> pCollectionIterator) {
         final boolean[] result = new boolean[1];
         result[0] = !pCollectionIterator.isEmpty();
-        final LongListIterator<E> retain = new LongListIterator<E>();
-        for (Collection<E2> collection : pCollectionIterator.allCollections()) {
-            Parallel.For(collection, new Parallel.Operation<E2>() {
+        if (result[0]) {
+            final LongListIterator<E> retain = new LongListIterator<E>();
+            for (Collection<E2> collection : pCollectionIterator.allCollections()) {
+                Parallel.For(collection, new Parallel.Operation<E2>() {
 
-                @Override
-                public void perform(E2 pParameter) {
-                    synchronized (result) {
-                        result[0] = retain.addAtEnd(pParameter);
+                    @Override
+                    public void perform(E2 pParameter) {
+                        synchronized (result) {
+                            result[0] = retain.addAtEnd(pParameter);
+                        }
+
                     }
 
-                }
+                    @Override
+                    public boolean follow() {
+                        return result[0];
+                    }
+                });
+            }
 
-                @Override
-                public boolean follow() {
-                    return result[0];
-                }
-            });
-        }
-
-        final LongListIterator<E> delete = new LongListIterator<>();
-        for (java.util.List<E> collection : this.allCollections()) {
-            Parallel.For(collection, new Parallel.Operation<E>() {
-                @Override
-                public void perform(E pParameter) {
-                    if (!retain.contains(pParameter)) {
-                        synchronized (result) {
-                            result[0] =  delete.addAtEnd(pParameter);
+            final LongListIterator<E> delete = new LongListIterator<>();
+            for (java.util.List<E> collection : this.allCollections()) {
+                Parallel.For(collection, new Parallel.Operation<E>() {
+                    @Override
+                    public void perform(E pParameter) {
+                        if (!retain.contains(pParameter)) {
+                            synchronized (result) {
+                                result[0] =  delete.addAtEnd(pParameter);
+                            }
                         }
                     }
-                }
 
-                @Override
-                public boolean follow() {
-                    return result[0];
-                }
-            });
-        }
-
-        for (java.util.List<E> collection : delete.allCollections()) {
-            Parallel.For(collection, new Parallel.Operation<E>() {
-                @Override
-                public void perform(E pParameter) {
-                    synchronized (result) {
-                        result[0] = LongListIterator.this.remove(pParameter);
+                    @Override
+                    public boolean follow() {
+                        return result[0];
                     }
-                }
+                });
+            }
 
-                @Override
-                public boolean follow() {
-                    return result[0];
-                }
-            });
+            for (java.util.List<E> collection : delete.allCollections()) {
+                Parallel.For(collection, new Parallel.Operation<E>() {
+                    @Override
+                    public void perform(E pParameter) {
+                        synchronized (result) {
+                            result[0] = LongListIterator.this.remove(pParameter);
+                        }
+                    }
+
+                    @Override
+                    public boolean follow() {
+                        return result[0];
+                    }
+                });
+            }
         }
         return result[0];
     }
@@ -1433,7 +1439,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                 ? (int) ((pIndex % (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1))) / ((long) MAX_COLLECTION_SIZE + 1))
                 : (int) (pIndex / ((long) MAX_COLLECTION_SIZE + 1));
         target[0] = values[arrayIndex].get(listIndex);
-        if (pIndex / MAX_COLLECTION_SIZE == mSize / MAX_COLLECTION_SIZE) {
+        if (pIndex / MAX_COLLECTION_SIZE == (mSize - 1) / MAX_COLLECTION_SIZE) {
             result[0] = target[0].remove(indexInCollectionOf(pIndex));
         } else {
             final LinkedList<LinkedList<E>>[] followTarget = new LinkedList[2];
@@ -1533,7 +1539,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
     public final E get(@NotNull final Long pIndex) {
         if (pIndex < MIN_INDEX || pIndex >= mSize) throw new IndexOutOfBoundsException(String.valueOf(pIndex));
         if (pIndex / MAX_COLLECTION_SIZE == getCollectionIndex()) {
-            return mCurrentCollection.get(indexInCollectionOf(pIndex));
+            return mCurrentCollection.currentCollection.get(indexInCollectionOf(pIndex));
         } else {
             final int arrayIndex = (int) (pIndex / (((long) MAX_COLLECTION_SIZE + 1) * ((long) MAX_COLLECTION_SIZE + 1)));
             final int listIndex = (arrayIndex == 1)
@@ -1556,14 +1562,14 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
             return collection.set(indexInCollectionOf(pIndex), pData);
         } finally {
             if (pIndex / MAX_COLLECTION_SIZE == getCollectionIndex()) {
-                mCurrentCollection.set(indexInCollectionOf(pIndex), pData);
+                mCurrentCollection.currentCollection.set(indexInCollectionOf(pIndex),pData);
             }
         }
     }
 
     /**
      *
-     * @param pIndex Index
+     * @param pIndex index
      * @param pData data
      * @throws IndexOutOfBoundsException if the index is out of range (index < 0 || index > size())
      * @throws IllegalStateException if the list is full
@@ -1735,6 +1741,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
         };
         for (Collection<E> collection : this.allCollections()) {
             Parallel.For(collection, operation);
+            if (!operation.follow()) break;
         }
         return result;
     }
@@ -1744,16 +1751,60 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
     public final Iterator<E> iterator() {
         return new Iterator<E>() {
 
+            private transient final Iterator<E> iterator = this;
+
             final class ListIterator implements java.util.List<E> {
 
-                transient ParallelArrayList<E> currentCollection;
-                transient long mCollectionIndex;
+                {
+                    sizeListeners.add(new SizeListener() {
+                        @Override
+                        public void change() {
+                            try {
+                                Field field = iterator.getClass().getDeclaredField("mIndex");
+                                Field field1 = iterator.getClass().getDeclaredField("mCurrentCollection");
+                                boolean b = field.isAccessible();
+                                boolean b1 = field1.isAccessible();
+                                try {
+                                    field.setAccessible(true);
+                                    field1.setAccessible(true);
+                                    long index = field.getLong(iterator);
+                                    if (index >= mSize) {
+                                        field.set(iterator, (mSize == 0)?NULL_INDEX:mSize-1);
+                                        if (mCollectionIndex != mIndex / MAX_COLLECTION_SIZE)
+                                            field1.set(iterator, ListIterator.class.newInstance());
+                                    }
+                                } catch (IllegalAccessException e) {
+                                    e.printStackTrace();
+                                    throw new RuntimeException(e);
+                                } catch (InstantiationException e) {
+                                    e.printStackTrace();
+                                    throw new RuntimeException(e);
+                                } finally {
+                                    field.setAccessible(b);
+                                    field1.setAccessible(b1);
+                                }
+                            } catch (NoSuchFieldException e) {
+                                e.printStackTrace();
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    });
+                }
+
+                private transient ParallelArrayList<E> currentCollection;
+                private transient long mCollectionIndex;
 
                 private ListIterator() {
                     currentCollection = (mIndex != NULL_INDEX)?new ParallelArrayList<>(collectionOf(mIndex)):null;
                     mCollectionIndex = (mIndex == NULL_INDEX)?NULL_INDEX:mIndex/MAX_COLLECTION_SIZE;
                 }
 
+                @Override
+                protected void finalize() throws Throwable {
+                    super.finalize();
+                    currentCollection = null;
+                    mCollectionIndex = NULL_INDEX;
+                }
 
                 @Override
                 public final boolean addAll(final int pIndex, @NotNull final Collection<? extends E> c) {
@@ -1868,13 +1919,68 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                 @NotNull
                 @Override
                 public final java.util.ListIterator<E> listIterator() {
-                    return this.listIterator(0);
+                    return this.listIterator(-1);
                 }
 
                 @NotNull
                 @Override
                 public final java.util.ListIterator<E> listIterator(final int index) {
-                    return currentCollection.listIterator(index);
+                    final ListIterator listIterator = this;
+                    return new java.util.ListIterator<E>() {
+
+                        private transient int mIndex = index;
+
+                        @Override
+                        public boolean hasNext() {
+                            return mIndex + 1 < listIterator.size();
+                        }
+
+                        @Override
+                        public E next() {
+                            if (hasNext())
+                                return currentCollection.get(++mIndex);
+                            else
+                                throw new NoSuchElementException();
+                        }
+
+                        @Override
+                        public boolean hasPrevious() {
+                            return mIndex - 1 >= 0;
+                        }
+
+                        @Override
+                        public E previous() {
+                            if (hasPrevious())
+                                return currentCollection.get(--mIndex);
+                            else
+                                throw new NoSuchElementException();
+                        }
+
+                        @Override
+                        public int nextIndex() {
+                            return mIndex + 1;
+                        }
+
+                        @Override
+                        public int previousIndex() {
+                            return mIndex - 1;
+                        }
+
+                        @Override
+                        public void remove() {
+                            mCurrentCollection.remove(mIndex);
+                        }
+
+                        @Override
+                        public void set(E e) {
+                            mCurrentCollection.set(mIndex,e);
+                        }
+
+                        @Override
+                        public void add(E e) {
+                            mCurrentCollection.add(mIndex,e);
+                        }
+                    };
                 }
 
                 @NotNull
@@ -1917,7 +2023,21 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                 @NotNull
                 @Override
                 public final java.util.Iterator<E> iterator() {
-                    return currentCollection.iterator();
+                    final ListIterator listIterator = this;
+                    return new java.util.Iterator<E>() {
+
+                        private transient int mIndex = -1;
+
+                        @Override
+                        public boolean hasNext() {
+                            return mIndex + 1 < listIterator.size();
+                        }
+
+                        @Override
+                        public E next() {
+                            return currentCollection.get(++mIndex);
+                        }
+                    };
                 }
 
                 @NotNull
@@ -2110,7 +2230,9 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
             @Nullable
             @Override
             public E next() throws NoSuchElementException {
-                if (mIndex + 1 < mSize)
+                if (mIndex == NULL_INDEX)
+                    mIndex = MIN_INDEX;
+                else if (mIndex + 1 < mSize)
                     mIndex++;
                 else
                     throw new NoSuchElementException();
@@ -2181,7 +2303,6 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
         return new Iterator<java.util.List<E>>() {
 
             private transient final Iterator<java.util.List<E>> iterator = this;
-            private transient long mIndex = pIndex;
 
             final class ListIterator implements java.util.List<E> {
 
@@ -2191,18 +2312,27 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                         public void change() {
                             try {
                                 Field field = iterator.getClass().getDeclaredField("mIndex");
+                                Field field1 = iterator.getClass().getDeclaredField("mCurrentCollection");
                                 boolean b = field.isAccessible();
+                                boolean b1 = field1.isAccessible();
                                 try {
                                     field.setAccessible(true);
+                                    field1.setAccessible(true);
                                     long index = field.getLong(iterator);
                                     if (index >= mSize) {
-                                        field.set(iterator,mSize-1);
+                                        field.set(iterator, (mSize == 0)?NULL_INDEX:mSize-1);
+                                        if (mCollectionIndex != mIndex / MAX_COLLECTION_SIZE)
+                                            field1.set(iterator, ListIterator.class.newInstance());
                                     }
                                 } catch (IllegalAccessException e) {
                                     e.printStackTrace();
                                     throw new RuntimeException(e);
+                                } catch (InstantiationException e) {
+                                    e.printStackTrace();
+                                    throw new RuntimeException(e);
                                 } finally {
                                     field.setAccessible(b);
+                                    field1.setAccessible(b1);
                                 }
                             } catch (NoSuchFieldException e) {
                                 e.printStackTrace();
@@ -2212,14 +2342,21 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                     });
                 }
 
-                transient ParallelArrayList<E> currentCollection;
-                transient long mCollectionIndex;
+                private transient ParallelArrayList<E> currentCollection;
+                private transient long mCollectionIndex;
 
                 private ListIterator() {
                     currentCollection = (mIndex != NULL_INDEX)?new ParallelArrayList<>(collectionOf(mIndex)):null;
                     mCollectionIndex = (mIndex != NULL_INDEX)?mIndex/MAX_COLLECTION_SIZE:NULL_INDEX;
                 }
 
+                @Override
+                protected void finalize() throws Throwable {
+                    super.finalize();
+                    mIndex = NULL_INDEX;
+                    currentCollection = null;
+                    mCollectionIndex = NULL_INDEX;
+                }
 
                 @Override
                 public final boolean addAll(final int pIndex, @NotNull final Collection<? extends E> c) {
@@ -2362,59 +2499,60 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                 @NotNull
                 @Override
                 public final java.util.ListIterator<E> listIterator(final int index) {
+                    final ListIterator listIterator = this;
                     return new java.util.ListIterator<E>() {
 
-                        private transient long mIndex2 = (mIndex / MAX_COLLECTION_SIZE) + index;
+                        private transient int mIndex =  index;
 
                         @Override
                         public boolean hasNext() {
-                            return indexInCollectionOf(mIndex2) + 1 < Integer.MAX_VALUE;
+                            return mIndex + 1 < listIterator.size();
                         }
 
                         @Override
                         public E next() {
                             if (hasNext())
-                                return currentCollection.get(indexInCollectionOf(++mIndex2));
+                                return currentCollection.get(++mIndex);
                             else
                                 throw new NoSuchElementException();
                         }
 
                         @Override
                         public boolean hasPrevious() {
-                            return indexInCollectionOf(mIndex2) - 1 >= 0;
+                            return mIndex - 1 >= 0;
                         }
 
                         @Override
                         public E previous() {
                             if (hasPrevious())
-                                return currentCollection.get(indexInCollectionOf(--mIndex2));
+                                return currentCollection.get(--mIndex);
                             else
                                 throw new NoSuchElementException();
                         }
 
                         @Override
                         public int nextIndex() {
-                            return indexInCollectionOf(mIndex2) + 1;
+                            return mIndex + 1;
                         }
 
                         @Override
                         public int previousIndex() {
-                            return indexInCollectionOf(mIndex2) - 1;
+                            return mIndex - 1;
                         }
 
                         @Override
                         public void remove() {
-                            mCurrentCollection.remove(indexInCollectionOf(mIndex2));
+                            mCurrentCollection.remove(mIndex);
                         }
 
                         @Override
                         public void set(E e) {
-                            mCurrentCollection.set(indexInCollectionOf(mIndex2),e);
+                            mCurrentCollection.set(mIndex,e);
                         }
 
                         @Override
                         public void add(E e) {
-                            mCurrentCollection.add(e);
+                            mCurrentCollection.add(mIndex,e);
                         }
                     };
                 }
@@ -2457,7 +2595,21 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
                 @NotNull
                 @Override
                 public final java.util.Iterator<E> iterator() {
-                    return currentCollection.iterator();
+                    final ListIterator listIterator = this;
+                    return new java.util.Iterator<E>() {
+
+                        private transient int mIndex = -1;
+
+                        @Override
+                        public boolean hasNext() {
+                            return mIndex + 1 < listIterator.size();
+                        }
+
+                        @Override
+                        public E next() {
+                            return currentCollection.get(++mIndex);
+                        }
+                    };
                 }
 
                 @NotNull
@@ -2657,6 +2809,7 @@ public class LongListIterator<E> extends ca.qc.bergeron.marcantoine.crammeur.lib
 
             }
 
+            private transient long mIndex = pIndex;
             private ListIterator mCurrentCollection = new ListIterator();
 
             @Override

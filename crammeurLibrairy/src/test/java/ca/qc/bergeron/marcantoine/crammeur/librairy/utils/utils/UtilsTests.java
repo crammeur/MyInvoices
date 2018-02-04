@@ -226,6 +226,8 @@ public class UtilsTests {
         Assert.assertTrue(dli2.getCollection().addAll(dli2.size().intValue()/2, new ArrayList<>(dli2.getCollection())));
         Assert.assertTrue(dli3.nextCollection().addAll(dli3.size().intValue()/2, new ArrayList<>(dli3.getCollection())));
         Assert.assertTrue(dli2.equals(dli3));
+        final LongListIterator<Data<Long>> dli4 = new LongListIterator<>(dli3);
+        Assert.assertTrue(dli4.equals(dli3));
     }
 
     @Test

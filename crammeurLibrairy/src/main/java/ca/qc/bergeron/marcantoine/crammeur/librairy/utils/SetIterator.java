@@ -39,6 +39,6 @@ public abstract class SetIterator<E, S extends Serializable> extends CollectionI
 
     @Override
     public final boolean equals(@Nullable final ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.SetIterator<E,S> pSetIterator) {
-        return pSetIterator != null && (this.equals((Object) pSetIterator) || this.containsAll(pSetIterator));
+        return pSetIterator != null && (this == pSetIterator || this.containsAll(pSetIterator));
     }
 }

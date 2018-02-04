@@ -33,6 +33,6 @@ public abstract class Map<K extends Serializable,V> extends Object implements ca
 
     @Override
     public final boolean equals(@Nullable ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.Map<K, V> pMap) {
-        return pMap != null && this.keySet().equals(pMap.keySet()) && this.values().equals(pMap.values());
+        return pMap != null && (this.keySet() == pMap.keySet() || this.keySet().equals(pMap.keySet())) && (this.values() == pMap.values() || this.values().equals(pMap.values()));
     }
 }
