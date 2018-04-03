@@ -35,16 +35,15 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.repository.i.Repository;
 public class GsonBuilder<T extends Data<K>, K extends Serializable> {
 
     public static final com.google.gson.GsonBuilder GsonBuilder = new com.google.gson.GsonBuilder()
+            .registerTypeHierarchyAdapter(java.lang.Object.class, new ObjectAdapter())
+            .registerTypeHierarchyAdapter(java.lang.Object[].class, new ObjectArrayAdapter())
             .registerTypeHierarchyAdapter(Date.class, new DateAdapter())
             .registerTypeHierarchyAdapter(BaseDateTime.class, new BaseDateTimeAdapter())
             .registerTypeHierarchyAdapter(Data.class, new DataAdapter())
             .registerTypeHierarchyAdapter(Data[].class, new DataArrayAdapter())
-            .registerTypeAdapter(new TypeToken<Collection<Data<Serializable>>>() {
-            }.getType(), new DataCollectionAdapter())
-            .registerTypeAdapter(new TypeToken<Map<Serializable, Data<Serializable>>>() {
-            }.getType(), new DataMapAdapter())
-            .registerTypeHierarchyAdapter(java.lang.Object.class, new ObjectAdapter())
-            .registerTypeHierarchyAdapter(java.lang.Object[].class, new ObjectArrayAdapter());
+            .registerTypeAdapter(new TypeToken<Collection<Data<Serializable>>>() {}.getType(), new DataCollectionAdapter())
+            .registerTypeAdapter(new TypeToken<Map<Serializable, Data<Serializable>>>() {}.getType(), new DataMapAdapter());
+
 
     private final com.google.gson.GsonBuilder mGsonBuilder;
 

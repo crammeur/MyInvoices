@@ -16,7 +16,7 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
 public interface Repository {
 
     /**
-     * Insert or Update the data
+     * Insert or update the data
      *
      * @param <T>
      * @param <K>
@@ -98,7 +98,7 @@ public interface Repository {
     <T extends Data> boolean contains(@NotNull Class<T> pClass, @NotNull T pData);
 
     /**
-     * Delete data by key
+     * delete data by key
      *
      * @param pClass
      * @param pKey

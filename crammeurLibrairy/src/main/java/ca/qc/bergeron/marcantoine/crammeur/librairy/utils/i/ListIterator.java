@@ -14,6 +14,10 @@ import java.util.NoSuchElementException;
 
 public interface ListIterator<E, S extends Serializable> extends CollectionIterator<E, S>, java.util.ListIterator<E> {
 
+    interface PartialList<E> extends PartialCollection<E>,List<E> {
+        boolean isLocked();
+    }
+
     E get(@NotNull S pIndex);
 
     E set(@NotNull S pIndex, @Nullable E pData);
@@ -36,18 +40,18 @@ public interface ListIterator<E, S extends Serializable> extends CollectionItera
 
     @NotNull
     @Override
-    List<E> nextCollection();
+    PartialList<E> nextCollection();
 
     @Override
-    List<E> getCollection() throws IndexOutOfBoundsException;
-
-    @NotNull
-    @Override
-    List<E> previousCollection() throws NoSuchElementException;
+    PartialList<E> getCollection() throws IndexOutOfBoundsException;
 
     @NotNull
     @Override
-    List<E> collectionOf(@NotNull S pIndex) throws IndexOutOfBoundsException;
+    PartialList<E> previousCollection() throws NoSuchElementException;
+
+    @NotNull
+    @Override
+    PartialList<E> collectionOf(@NotNull S pIndex) throws IndexOutOfBoundsException;
 
     @NotNull
     ListIterator<E, S> subListIterator(@NotNull S pIndex1, @NotNull S pIndex2);

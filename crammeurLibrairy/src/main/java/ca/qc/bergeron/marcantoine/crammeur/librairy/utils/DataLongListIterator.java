@@ -42,9 +42,7 @@ public class DataLongListIterator<T extends Data<Long>> extends LongListIterator
         };
         for (Collection<T> collection : this.allCollections()) {
             Parallel.For(collection, operation);
-            if (result[0] != NULL_INDEX) {
-                break;
-            }
+            if (!operation.follow()) break;
         }
         return result[0];
     }

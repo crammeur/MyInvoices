@@ -24,14 +24,14 @@ public class BaseDateTimeAdapter implements JsonDeserializer<BaseDateTime>, Json
     public BaseDateTime deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
         BaseDateTime result = null;
         if (DateTime.class.isAssignableFrom((Class) typeOfT))
-            result = DateTime.parse(json.getAsJsonPrimitive().getAsString());
+            result = new DateTime(json.getAsLong());
         else if (MutableDateTime.class.isAssignableFrom((Class) typeOfT))
-            result = MutableDateTime.parse(json.getAsJsonPrimitive().getAsString());
+            result = new MutableDateTime(json.getAsLong());
         return result;
     }
 
     @Override
     public JsonElement serialize(BaseDateTime src, Type typeOfSrc, JsonSerializationContext context) {
-        return new JsonPrimitive(src.toString());
+        return new JsonPrimitive(src.getMillis());
     }
 }

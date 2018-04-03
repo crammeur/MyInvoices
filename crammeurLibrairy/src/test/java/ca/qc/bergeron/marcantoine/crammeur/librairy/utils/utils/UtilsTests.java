@@ -52,6 +52,8 @@ public class UtilsTests {
         Assert.assertTrue(dli.hasNext());
         Assert.assertTrue(!dli.hasPrevious());
         Assert.assertTrue(dli.next().equals(data));
+        Assert.assertTrue(dli.hasActual());
+        Assert.assertTrue(dli.get().equals(data));
         Assert.assertTrue(!dli.hasPrevious());
         Assert.assertTrue(!dli.hasNext());
         Data<Long> data2 = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
@@ -102,9 +104,10 @@ public class UtilsTests {
 
         final ExecutorService exec = Executors.newSingleThreadExecutor();
         final Runnable runnable = new Runnable() {
+            long index = 0;
             @Override
             public void run() {
-                for (long index = 0; index < count; index++) {
+                for (; index < count; index++) {
                     Data<Long> data3 = new ca.qc.bergeron.marcantoine.crammeur.librairy.models.Data<Long>() {
                         Long Id = null;
 
@@ -132,7 +135,9 @@ public class UtilsTests {
             }
         };
         try {
-            exec.submit(runnable);
+            for (int threadIndex=0; threadIndex<Runtime.getRuntime().availableProcessors()*2; threadIndex++) {
+                exec.execute(runnable);
+            }
         } finally {
             exec.shutdown();
             while (!exec.isTerminated()) {
@@ -154,26 +159,7 @@ public class UtilsTests {
                 return true;
             }
         });
-        /*for(List<Data<Long>> list  : dli.<List<Data<Long>>>allCollections()) {
-            Parallel.For((Iterable<? extends Data<Long>>) list, new Parallel.Operation<Data<Long>>() {
-                @Override
-                public void perform(Data<Long> pParameter) {
-                    System.out.println(pParameter);
-                    synchronized (dl3) {
-                        dl3.addAtEnd(pParameter);
-                    }
-                }
 
-                @Override
-                public boolean follow() {
-                    return true;
-                }
-            });
-        }*/
-        //Assert.assertTrue(dli.size().equals(dl3.size()));
-        //Assert.assertTrue(dli.equals(dl3));
-
-        //Assert.assertTrue(!dli.equals(dli2));
         Collection<Data<Long>> collection = dli.getCollection();
         Assert.assertTrue(collection.remove(data));
         for (int index = 0; index < 10; index++) {
@@ -223,11 +209,26 @@ public class UtilsTests {
         System.out.println("Remove last data");
         Assert.assertTrue(!collection.contains(data3));
         Assert.assertTrue(!dli.equals(dli2));
-        Assert.assertTrue(dli2.getCollection().addAll(dli2.size().intValue()/2, new ArrayList<>(dli2.getCollection())));
-        Assert.assertTrue(dli3.nextCollection().addAll(dli3.size().intValue()/2, new ArrayList<>(dli3.getCollection())));
+        Assert.assertTrue(dli2.getCollection().addAll(dli2.getCollection().size()/2, new ArrayList<>(dli2.getCollection())));
+        Assert.assertTrue(dli3.nextCollection().addAll(dli3.getCollection().size()/2, new ArrayList<>(dli3.getCollection())));
         Assert.assertTrue(dli2.equals(dli3));
         final LongListIterator<Data<Long>> dli4 = new LongListIterator<>(dli3);
         Assert.assertTrue(dli4.equals(dli3));
+        System.out.println("dli4 equals dli3");
+        dli4.clear();
+        Assert.assertTrue(dli4.size() == 0L);
+        Assert.assertTrue(!dli4.equals(dli3));
+        dli3.getCollection().clear();
+        Assert.assertTrue(!dli3.hasActual());
+        Assert.assertTrue(dli4.equals(dli3));
+        System.out.println("dli4 equals dli3");
+        collection.clear();
+        Assert.assertTrue(collection.isEmpty());
+        Assert.assertTrue(dli.equals(dli3));
+        Assert.assertTrue(collection.add(data));
+        Assert.assertTrue(dli3.addAtEnd(data));
+        Assert.assertTrue(collection.equals(dli3.nextCollection()));
+        Assert.assertTrue(dli.equals(dli3));
     }
 
     @Test

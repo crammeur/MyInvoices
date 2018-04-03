@@ -4,7 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
-import java.util.Set;
 
 /**
  * Created by Marc-Antoine on 2017-11-23.
@@ -65,11 +64,11 @@ public interface Map<K extends Serializable, V> {
 
         @NotNull
         @Override
-        Set<Entry<K, T>> nextCollection();
+        SetIterator.PartialSet<Entry<K, T>> nextCollection();
 
         @NotNull
         @Override
-        Set<Entry<K, T>> collectionOf(@NotNull K pIndex);
+        SetIterator.PartialSet<Entry<K, T>> collectionOf(@NotNull K pIndex);
 
         boolean equals(@Nullable EntrySetIterator<T, K> pEntrySetIterator);
     }

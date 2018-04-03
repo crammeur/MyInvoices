@@ -11,9 +11,6 @@ import java.io.Serializable;
 
 public interface Collection<E, S extends Serializable> extends Iterable<E> {
 
-    int NULL_INDEX = -1;
-    int MIN_INDEX = 0;
-
     S size();
 
     boolean isEmpty();

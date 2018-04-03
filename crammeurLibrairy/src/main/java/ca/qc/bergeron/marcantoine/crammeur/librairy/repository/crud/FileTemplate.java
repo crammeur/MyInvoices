@@ -349,7 +349,7 @@ public class FileTemplate<T extends Data<Integer>> extends CRUD<T, Integer> {
         if ((insert && !mTableKeyData.get(mTableName).containsKey(pData.getId())) || (!insert && mTableKeyData.get(mTableName).containsKey(pData.getId())))
             mTableKeyData.get(mTableName).put(pData.getId(), pData);
         else
-            throw new RuntimeException("Insert or Update error");
+            throw new RuntimeException("Insert or update error");
 
         updateFile();
         updateFilesSettings();
@@ -530,7 +530,7 @@ public class FileTemplate<T extends Data<Integer>> extends CRUD<T, Integer> {
     @Override
     public final void clear() {
         System.gc();
-        if (mFile.exists() && !mFile.delete()) throw new RuntimeException("Delete file values");
+        if (mFile.exists() && !mFile.delete()) throw new RuntimeException("delete file values");
         mTableKeyData.get(mTableName).clear();
         mGlobalIndex.clear();
         updateFilesSettings();

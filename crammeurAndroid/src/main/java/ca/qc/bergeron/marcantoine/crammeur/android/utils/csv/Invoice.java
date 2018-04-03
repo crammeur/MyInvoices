@@ -48,7 +48,7 @@ public abstract class Invoice {
             "Total\n";
 
     /**
-     * Create CSV file of invoice
+     * create CSV file of invoice
      * @param pFile
      * @param pInvoice
      * @return CSV String

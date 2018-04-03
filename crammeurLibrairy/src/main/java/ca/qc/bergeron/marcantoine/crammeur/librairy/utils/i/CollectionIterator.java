@@ -3,7 +3,6 @@ package ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.NoSuchElementException;
 
 /**
@@ -12,7 +11,13 @@ import java.util.NoSuchElementException;
 
 public interface CollectionIterator<E, S extends Serializable> extends ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.Collection<E,S>, Iterator<E> {
 
+    int NULL_INDEX = -1;
+    int MIN_INDEX = 0;
     int MAX_COLLECTION_SIZE = Integer.MAX_VALUE;
+
+    interface PartialCollection<E> extends java.util.Collection<E> {
+        boolean isLocked();
+    }
 
     @NotNull
     S getIndex();
@@ -49,6 +54,8 @@ public interface CollectionIterator<E, S extends Serializable> extends ca.qc.ber
      */
     int indexInCollectionOf(@NotNull S pIndex) throws IndexOutOfBoundsException;
 
+    boolean hasActual();
+
     boolean hasNextCollection();
 
     /**
@@ -58,8 +65,7 @@ public interface CollectionIterator<E, S extends Serializable> extends ca.qc.ber
      * @throws NoSuchElementException
      */
     @NotNull
-    Collection<E> nextCollection() throws NoSuchElementException;
-
+    PartialCollection<E> nextCollection() throws NoSuchElementException;
 
     /**
      * Return the actual collection
@@ -67,7 +73,7 @@ public interface CollectionIterator<E, S extends Serializable> extends ca.qc.ber
      * @return Actual Collection where index is
      * @throws IndexOutOfBoundsException
      */
-    Collection<E> getCollection() throws IndexOutOfBoundsException;
+    PartialCollection<E> getCollection() throws IndexOutOfBoundsException;
 
     boolean hasPreviousCollection();
 
@@ -78,10 +84,10 @@ public interface CollectionIterator<E, S extends Serializable> extends ca.qc.ber
      * @throws NoSuchElementException
      */
     @NotNull
-    Collection<E> previousCollection() throws NoSuchElementException;
+    PartialCollection<E> previousCollection() throws NoSuchElementException;
 
     @NotNull
-    <T extends Collection<E>> Iterable<T> allCollections();
+    <T extends PartialCollection<E>> Iterable<T> allCollections();
 
     /**
      * Return specific collection where index is
@@ -91,14 +97,14 @@ public interface CollectionIterator<E, S extends Serializable> extends ca.qc.ber
      * @throws IndexOutOfBoundsException
      */
     @NotNull
-    Collection<E> collectionOf(@NotNull S pIndex) throws IndexOutOfBoundsException;
+    PartialCollection<E> collectionOf(@NotNull S pIndex) throws IndexOutOfBoundsException;
 
     @NotNull
     @Override
     Iterator<E> iterator();
 
-    <T extends Collection<E>> Iterator<T> collectionsIterator();
+    <T extends PartialCollection<E>> Iterator<T> collectionsIterator();
 
-    <T extends Collection<E>> Iterator<T> collectionsIterator(@NotNull S pIndex);
+    <T extends PartialCollection<E>> Iterator<T> collectionsIterator(@NotNull S pIndex);
 
 }

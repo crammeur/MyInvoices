@@ -12,20 +12,25 @@ import java.util.Set;
  */
 
 public interface SetIterator<E, S extends Serializable> extends CollectionIterator<E, S> {
-    @NotNull
-    @Override
-    Set<E> nextCollection();
+
+    interface PartialSet<E> extends PartialCollection<E>,Set<E> {
+        boolean isLocked();
+    }
 
     @NotNull
     @Override
-    Set<E> collectionOf(@NotNull S pIndex);
-
-    @Override
-    Set<E> getCollection() throws IndexOutOfBoundsException;
+    PartialSet<E> nextCollection();
 
     @NotNull
     @Override
-    Set<E> previousCollection() throws NoSuchElementException;
+    PartialSet<E> collectionOf(@NotNull S pIndex);
+
+    @Override
+    PartialSet<E> getCollection() throws IndexOutOfBoundsException;
+
+    @NotNull
+    @Override
+    PartialSet<E> previousCollection() throws NoSuchElementException;
 
     boolean equals(@Nullable final SetIterator<E,S> pSetIterator);
 

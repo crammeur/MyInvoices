@@ -7,6 +7,7 @@ import java.io.Serializable;
 import java.util.Set;
 
 import ca.qc.bergeron.marcantoine.crammeur.librairy.lang.Object;
+import ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.SetIterator;
 
 /**
  * Created by Marc-Antoine on 2017-11-23.
@@ -16,7 +17,7 @@ public abstract class Map<K extends Serializable,V> extends Object implements ca
 
     @Override
     public final <K2 extends K, V2 extends V> void putAll(@NotNull final ca.qc.bergeron.marcantoine.crammeur.librairy.utils.i.Map<K2, V2> pMap) {
-        for (Set<K2> collection : pMap.keySet().<Set<K2>>allCollections()) {
+        for (Set<K2> collection : pMap.keySet().<SetIterator.PartialSet<K2>>allCollections()) {
             Parallel.For(collection, new Parallel.Operation<K2>() {
                 @Override
                 public void perform(K2 pParameter) {

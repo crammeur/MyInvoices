@@ -44,7 +44,7 @@ public abstract class CRUD<T extends Data<K>, K extends Serializable> extends Da
     }
 
     /**
-     * Create table
+     * create table
      */
     public abstract void create();
 

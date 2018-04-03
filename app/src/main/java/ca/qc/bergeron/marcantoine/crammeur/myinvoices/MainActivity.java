@@ -354,8 +354,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                                     try {
                                         File pdf = new File(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),"My Invoices/PDF"),"Invoice-Facture#" + content.mItem.Id + ".pdf");
                                         File csv = new File(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),"My Invoices/CSV"),"Invoice-Facture#" + content.mItem.Id + ".csv");
-                                        if (pdf.exists()) if (!pdf.delete()) throw new RuntimeException(new IOException("Delete pdf"));
-                                        if (csv.exists()) if (!csv.delete()) throw new RuntimeException(new IOException("Delete csv"));
+                                        if (pdf.exists()) if (!pdf.delete()) throw new RuntimeException(new IOException("delete pdf"));
+                                        if (csv.exists()) if (!csv.delete()) throw new RuntimeException(new IOException("delete csv"));
                                         Service.Invoices.delete(content.mItem.Invoice.Id);
                                         InvoiceContent.removeItem(content.mItem.Id);
                                         iRVAdapter.notifyDataSetChanged();

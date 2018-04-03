@@ -89,7 +89,7 @@ public class FilesTemplate<T extends Data<K>, K extends Number> extends CRUD<T, 
                 } else if (!pExceptions.contains(f)) {
                     System.gc();
                     if (!f.delete())
-                        throw new RuntimeException("Delete file failed");
+                        throw new RuntimeException("delete file failed");
                 }
             }
         }
@@ -103,7 +103,7 @@ public class FilesTemplate<T extends Data<K>, K extends Number> extends CRUD<T, 
                 } else {
                     System.gc();
                     if (!f.delete())
-                        throw new RuntimeException("Delete file failed");
+                        throw new RuntimeException("delete file failed");
                 }
             }
         }
@@ -112,7 +112,7 @@ public class FilesTemplate<T extends Data<K>, K extends Number> extends CRUD<T, 
     public static synchronized void deleteFolder(File pFolder) {
         if (pFolder.isDirectory()) {
             clearFolder(pFolder);
-            if (!pFolder.delete()) throw new RuntimeException("Delete folder failed");
+            if (!pFolder.delete()) throw new RuntimeException("delete folder failed");
         }
     }
 

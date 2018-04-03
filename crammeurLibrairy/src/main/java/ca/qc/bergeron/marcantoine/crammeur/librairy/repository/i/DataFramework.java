@@ -22,7 +22,7 @@ import ca.qc.bergeron.marcantoine.crammeur.librairy.models.i.Data;
 public interface DataFramework<T extends Data<K>, K extends Serializable> {
 
     /**
-     * Create or update data
+     * create or update data
      *
      * @param pData data
      * @return key
@@ -87,7 +87,7 @@ public interface DataFramework<T extends Data<K>, K extends Serializable> {
     boolean contains(@NotNull K pKey);
 
     /**
-     * Delete data by the key
+     * delete data by the key
      *
      * @param pKey data
      * @throws KeyException
@@ -96,7 +96,7 @@ public interface DataFramework<T extends Data<K>, K extends Serializable> {
     void delete(@NotNull K pKey) throws KeyException, DeleteException;
 
     /**
-     * Delete all data
+     * delete all data
      */
     void clear();
 
